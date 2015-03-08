@@ -5,7 +5,8 @@
 #include <vector>
 #include <algorithm>
 
-#define DEBUG_ON
+//#define DEBUG_ON
+#define RANDOM_SEED
 
 #ifdef DEBUG_ON
 #define DEBUG(x) do { std::cerr << x; } while (0)
@@ -33,7 +34,7 @@ typedef map<Check*, msg>::iterator map_chk_val_it;
 
 class Check {
 public:
-    int index;
+    unsigned int index;
     Check(int _index);
     vec_var vars;
     int add_variable(Variable *v);
@@ -42,7 +43,7 @@ public:
 
 class Variable {
 public:
-    int index;
+    unsigned int index;
     msg value;
     Variable(int _index);
     int apply_channel(float p_e);
@@ -60,21 +61,29 @@ void Check::send_messages() {
     // loop through each connected variable node
     for(vec_var_it i_it = this->vars.begin(); i_it != this->vars.end(); ++i_it) {
         Variable *v_target = *i_it;
+        DEBUG("c" << this->index << " sending to v" << v_target->index << " from ");
         // loop through all *other* connected variable nodes
-        msg msg_target = ZERO;
+        msg msg_target = NONE;
+        int parity = 0;
         for(vec_var_it j_it = this->vars.begin(); j_it != this->vars.end(); ++j_it) {
             Variable *v = *j_it;
-            if(v_target = v) {
+            if(v_target == v) {
                 continue;
             }
+            DEBUG("v" << v->index << " ");
             msg v_value = v->value;
             if(v_value == ERASE) {
                 msg_target = ERASE;
                 break;
+            } else if(v_value == NONE) {
+                DEBUG("warning: v" << v->index << endl);
             }
-            msg_target = (msg)((int)msg_target ^ (int)v_value);
-            // outgoing message is sum%2 of incoming messages; any incoming erasure causes outgoing erasure
+
+            parity += v_value; 
+            msg_target = (parity&1) ? ONE : ZERO;
         }
+        DEBUG(endl);
+        //DEBUG("c" << this->index << " sending " << msg_target << " to v" << v_target->index << endl);
         v_target->chks[this] = msg_target;
     }
         
@@ -93,6 +102,7 @@ int Variable::apply_channel(float p_e) {
     if(p_e > r) {
         this->value = ERASE;
     }
+    return 0;
 }
 
 msg Variable::update_value() {
@@ -100,7 +110,7 @@ msg Variable::update_value() {
     if(this->value == ERASE) {
         // read in all messages and apply variable node rules
         for(map_chk_val_it it = this->chks.begin(); it != this->chks.end(); ++it) {
-            Check *c = it->first;
+            //Check *c = it->first;
             msg c_msg = it->second;
             if(c_msg == ONE || c_msg == ZERO) {
                 // if any messages is non erased, take value and stop looking
@@ -130,12 +140,12 @@ public:
     vec_var vars;
     vec_chk chks;
 
-    Check* get_check(int index) {
+    Check* get_check(unsigned int index) {
         Check *c;
-        int size = chks.size();
+        unsigned int size = chks.size();
         if(index >= size) {
             chks.resize(index+1);
-            for(int i = size; i <= index; i++) {
+            for(unsigned int i = size; i <= index; i++) {
                 chks[i] = new Check(i);
             }
         }
@@ -143,12 +153,12 @@ public:
         return c;
     }
 
-    Variable* get_variable(int index) {
+    Variable* get_variable(unsigned int index) {
         Variable *v;
-        int size = vars.size();
+        unsigned int size = vars.size();
         if(index >= size) {
             vars.resize(index+1);
-            for(int i = size; i <= index; i++) {
+            for(unsigned int i = size; i <= index; i++) {
                 vars[i] = new Variable(i);
             }
         }
@@ -156,8 +166,8 @@ public:
         return v;
     }
 
-    int print_checks() {
-        for(int i = 0; i < chks.size(); i++) {
+    void print_checks() {
+        for(unsigned int i = 0; i < chks.size(); i++) {
             Check* c = chks[i];
             cout << "check " << i << ":";
             for(vec_var_it it = c->vars.begin(); it != c->vars.end(); ++it) {
@@ -167,10 +177,10 @@ public:
         }
     }
 
-    int print_variables() {
-        for(int i = 0; i < vars.size(); i++) {
+    void print_variables() {
+        for(unsigned int i = 0; i < vars.size(); i++) {
             Variable* v = vars[i];
-            cout << "v" << i << ":";
+            cout << "v" << i << "=" << v->value << " : ";
             for(map_chk_val_it it = v->chks.begin(); it != v->chks.end(); ++it) {
                 cout << " " << it->first->index;
             }
@@ -184,6 +194,13 @@ public:
         Variable *v = this->get_variable(v_idx);
         c->vars.push_back(v);
         v->chks[c] = NONE;
+        return 0;
+    }
+
+    void zero_variables() {
+        for(vec_var_it it = this->vars.begin(); it != this->vars.end(); ++it) {
+            (*it)->value = ZERO;
+        }
     }
 
     int apply_channel(float p_e) {
@@ -191,6 +208,15 @@ public:
             (*it)->apply_channel(p_e);
             DEBUG("v" << (*it)->index << " value: " << (*it)->value << endl);
         }
+        return 0;
+    }
+
+    void print_var_vec() {
+        for(vec_var_it it = this->vars.begin(); it != this->vars.end(); ++it) {
+            Variable *v = *it;
+            cout << v->value;
+        }
+        cout << endl;
     }
 
     int decode(int iterations) {
@@ -200,11 +226,29 @@ public:
 
         // run check step
 
-        for(vec_chk_it it = this->chks.begin(); it != this->chks.end(); ++it) {
-            Check *c = *it;
-            c->send_messages();
+        DEBUG("decoding..." << endl);
+
+        this->print_var_vec();
+
+        for(int i = 0; i < iterations; ++i) {
+            for(vec_chk_it it = this->chks.begin(); it != this->chks.end(); ++it) {
+                Check *c = *it;
+                c->send_messages();
+            }
+            for(vec_var_it it = this->vars.begin(); it != this->vars.end(); ++it) {
+                Variable *v = *it;
+                v->update_value();
+            }
+            //this->print_variables();
+            this->print_var_vec();
         }
         
+        unsigned int bit_errors = 0;
+        for(vec_var_it it = this->vars.begin(); it != this->vars.end(); ++it) {
+            if((*it)->value != ZERO) {
+                ++bit_errors;
+            }
+        }
         return 0;
     }
 };
@@ -225,7 +269,12 @@ int main(int argc, char** argv) {
     }
     g.print_checks();
     g.print_variables();
-    g.apply_channel(0.35);
+    g.zero_variables();
+    #ifdef RANDOM_SEED
+    srand ( time(NULL) );
+    #endif
+    g.apply_channel(0.30);
+    g.decode(10);
 }
 
 
