@@ -291,18 +291,15 @@ int main(int argc, char** argv) {
     }
     //g.print_checks();
     //g.print_variables();
-    /*
-    g.zero_variables();
-    g.apply_channel(0.35);
-    //g.print_var_vec();
-    unsigned int bit_errors = g.decode(10);
-    //g.print_var_vec();
-    cout << "bit errors: " << bit_errors << " rate: " << ((float)bit_errors/(float)g.vars.size()) << endl;
-    */
-    float p_erase = 0.25;
-    unsigned int iters = 10;
-    unsigned int block_errors = 100;
-    cout << g.test_ber(p_erase, iters, block_errors) << endl;
+
+    float start_p_erase = 0.25;
+    float stop_p_erase = 0.50;
+    float step_p_erase = (stop_p_erase - start_p_erase) / 20.;
+    for(float p_erase = start_p_erase; p_erase < stop_p_erase; p_erase+=step_p_erase) {
+        unsigned int iters = 10;
+        unsigned int block_errors = 100;
+        cout << g.test_ber(p_erase, iters, block_errors) << endl;
+    }
 
 }
 
