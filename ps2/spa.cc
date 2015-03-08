@@ -228,7 +228,6 @@ public:
 
         DEBUG("decoding..." << endl);
 
-        this->print_var_vec();
 
         for(int i = 0; i < iterations; ++i) {
             for(vec_chk_it it = this->chks.begin(); it != this->chks.end(); ++it) {
@@ -240,7 +239,6 @@ public:
                 v->update_value();
             }
             //this->print_variables();
-            this->print_var_vec();
         }
         
         unsigned int bit_errors = 0;
@@ -249,12 +247,36 @@ public:
                 ++bit_errors;
             }
         }
-        return 0;
+        return bit_errors;
+    }
+
+    float test_ber(float p_e, unsigned int iterations, unsigned int block_error_threshold) {
+        unsigned int block_error_count = 0;
+        unsigned int bit_error_count = 0;
+        unsigned int sim_count = 0;
+        while(block_error_count <= block_error_threshold) {
+            this->zero_variables();
+            this->apply_channel(p_e);
+            unsigned int bit_errors = this->decode(iterations);
+            if(bit_errors) {
+                block_error_count++;
+                bit_error_count += bit_errors;
+            }
+            sim_count++;
+        }
+        cout << "sim count: " << sim_count << endl;
+        float ber = (float)bit_error_count/(float)(sim_count*this->vars.size());
+        return ber;
     }
 };
 
 
+
+
 int main(int argc, char** argv) {
+    #ifdef RANDOM_SEED
+    srand ( time(NULL) );
+    #endif
 
     Graph g;
     string line;
@@ -267,14 +289,21 @@ int main(int argc, char** argv) {
         } 
         c_idx++;
     }
-    g.print_checks();
-    g.print_variables();
+    //g.print_checks();
+    //g.print_variables();
+    /*
     g.zero_variables();
-    #ifdef RANDOM_SEED
-    srand ( time(NULL) );
-    #endif
-    g.apply_channel(0.30);
-    g.decode(10);
+    g.apply_channel(0.35);
+    //g.print_var_vec();
+    unsigned int bit_errors = g.decode(10);
+    //g.print_var_vec();
+    cout << "bit errors: " << bit_errors << " rate: " << ((float)bit_errors/(float)g.vars.size()) << endl;
+    */
+    float p_erase = 0.25;
+    unsigned int iters = 10;
+    unsigned int block_errors = 100;
+    cout << g.test_ber(p_erase, iters, block_errors) << endl;
+
 }
 
 
