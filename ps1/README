@@ -1,0 +1,41 @@
+ECE1508 Problem Set #1
+January 16 2015
+James Bailey
+
+This readme file describes the deliverables for problem 1.8.
+
+For each channel/decoder pairing 200 simulations were run.  In practise I ran a lot more while
+developing the script and the results are consistent, although I have not proven the confidence.
+
+Software requirements:
+    * Python 2.7.x
+    * scipy Python package (www.scipy.org)
+    * numpy Python package (should be included in scipy)
+    * matplotlib Python package (should be included in scipy)
+
+spa.py:
+        Python script to simulate SPA algorithm over BSC, BEC, AWGN channels.  Saves results to *_spa.data files.
+        Usage: ./spa.py
+
+exhaustive.py:
+        Python script to simulate exhaustive word ML algorithm over BSC, BEC, AWGN channels.  Saves results to *_ex.data files.
+        Usage: ./exhaustive.py
+
+plotResults.py:
+        Python script to plot results.  This loads the *.data files and plots the contents.
+        Only one plot displays at a time.  When you close one, the next will open up.
+        Usage: ./plotResults.py
+
+<bsc|bec|awgn>_<ex|spa>.data:
+        Data files containing the results of the previous run of the spa.py and/or exhaustive.py scripts.
+        Format is csv WER values on first line, and then channel parameter on second line.
+        I have provided the results of my own run - these should be reproducable simply by running the above scripts.
+
+bsc_plot.png:
+        Plot of results for BSC simulations.  This can be reproduced by running the plotResults.py script.
+
+bec_plot.png:
+        Plot of results for BEC simulations.  This can be reproduced by running the plotResults.py script.
+
+awgn_plot.png:
+        Plot of results for AWGN simulations.  This can be reproduced by running the plotResults.py script.
