@@ -303,6 +303,10 @@ public:
                 bit_error_count += bit_errors;
             }
             sim_count++;
+            //cout << sim_count << ">" << (1E7 / this->vars.size()) << endl;
+            if(1/((float)sim_count*(float)this->vars.size())<1E-7){
+                break;  // if we can't get any errors we should abort
+            }
         }
         float ber = (float)bit_error_count/(float)(sim_count*this->vars.size());
         return ber;
@@ -331,7 +335,7 @@ int main(int argc, char** argv) {
     //g.print_checks();
     //g.print_variables();
 
-    float start_p_erase = 0.25;
+    float start_p_erase = 0.30;
     //float start_p_erase = 0.35;
     float stop_p_erase = 0.50;
     float step_p_erase = (stop_p_erase - start_p_erase) / 40.;
@@ -342,9 +346,11 @@ int main(int argc, char** argv) {
     }
     cout << endl;
 
-    int iter_list[] = {1,3,5,10,15,20,25,30};
-    for(unsigned int i = 0; i < sizeof(iter_list); i++) {
-        unsigned int iters = iter_list[i];
+    //int iter_list[] = {1,3,5,10,15,20,25,30};
+    //int iter_list[] = {10};
+    //for(unsigned int i = 0; i < sizeof(iter_list); i++) {
+    for(unsigned int i = 0; i < 1; i++) {
+        unsigned int iters = 10;
         cout << iters;
         for(float p_erase = start_p_erase; p_erase < stop_p_erase; p_erase+=step_p_erase) {
             unsigned int block_errors = 100;

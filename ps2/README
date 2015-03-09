@@ -1,0 +1,55 @@
+ECE1508 Problem Set #2
+March 7 2015
+James Bailey
+
+This readme file describes the deliverables for problem 2.8.
+
+I have written this assigmnent primarily in C++.  Initially I tried adapting my Python
+scripts from the previous assignment, but they were way too slow.
+
+Software requirements:
+    * g++ with support for C++/11 (or some other C++/11 compiler)
+    * Make
+    * Python 2.7.x
+    * scipy Python package (www.scipy.org)
+    * numpy Python package (should be included in scipy)
+    * matplotlib Python package (should be included in scipy)
+
+Makefile:
+        Used to compile the C++ code for the assignment.  
+        Usage: make
+
+spa.cc:
+        C++ script that implements the decoder and simulation portion of the assignment.
+        Compiles with make flow to produce 'spa' binary.
+
+spa:
+        Compiled version of the assignment.  I have provided the latest compiled version
+        from my development, although it will only work on similar architectures (x86-64, Linux)
+        Usage: ./spa < code.txt
+
+parity_gen.py:
+        This script generates a random LDPC(1200,x2,x5) parity table in the same format
+        described in the assignment.  I used this to generate all my codes.
+        Usage: ./parity_gen.py
+
+codes/*.txt:
+        These are my generated codes.
+
+codes/*.data:
+        This is the generated simulation data from my codes.  The first row specifies the
+        erasure probability.  The subsequent rows are formatted: it_count, ber1, ber2, ber3, ...
+
+plotResults.py:
+        Python script to plot results.  This loads the *.data files and plots the contents.
+        Only one plot displays at a time.  When you close one, the next will open up.
+        Usage: ./plotResults.py
+
+plot_a.png:
+        This is a plot of each 10 codes and their average.
+
+plot_b.png:
+        This is a plot of the 10 code average and the provided code performance.
+
+plot_c.png:
+        This is a plot of the provided code performance at a variety of iteration limits.

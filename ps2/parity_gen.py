@@ -8,7 +8,7 @@ var_deg = 3
 
 chk_nodes = n*var_deg/chk_deg
 
-var_sockets = range(n) * var_deg
+var_sockets = range(1,n+1) * var_deg
 
 random.shuffle(var_sockets)
 for i in range(chk_nodes):
