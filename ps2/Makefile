@@ -1,5 +1,6 @@
 CC=g++
-CCARGS=-Wall
+#CCARGS=-Wall -pg
+CCARGS=-Wall -O3
 spa: spa.cc
 	$(CC) $(CCARGS) -o spa spa.cc
 

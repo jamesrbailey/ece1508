@@ -3,6 +3,7 @@
 #include <sstream>
 #include <map>
 #include <vector>
+#include <list>
 #include <algorithm>
 
 //#define DEBUG_ON
@@ -22,11 +23,15 @@ enum msg {NONE=0x4, ERASE=0x2, ONE=0x1, ZERO=0x0};
 class Variable;
 class Check;
 
+typedef list<Variable *> list_var;
+typedef list<Variable *>::iterator list_var_it;
 typedef vector<Variable *> vec_var;
 typedef vector<Variable *>::iterator vec_var_it;
 typedef map<Variable*, msg> map_var_msg;
 typedef map<Variable*, msg>::iterator map_var_val_it;
 
+typedef list<Check *> list_chk;
+typedef list<Check *>::iterator list_chk_it;
 typedef vector<Check *> vec_chk;
 typedef vector<Check *>::iterator vec_chk_it;
 typedef map<Check*, msg> map_chk_val;
@@ -38,7 +43,7 @@ public:
     Check(int _index);
     vec_var vars;
     int add_variable(Variable *v);
-    void send_messages();
+    bool send_messages();
 };
 
 class Variable {
@@ -57,7 +62,8 @@ Check::Check(int _index) {
     index = _index;
     DEBUG("check " << index << " @" << this << " created" << endl);
 }
-void Check::send_messages() {
+bool Check::send_messages() {
+    bool sent_erasure = false;
     // loop through each connected variable node
     for(vec_var_it i_it = this->vars.begin(); i_it != this->vars.end(); ++i_it) {
         Variable *v_target = *i_it;
@@ -73,6 +79,7 @@ void Check::send_messages() {
             DEBUG("v" << v->index << " ");
             msg v_value = v->value;
             if(v_value == ERASE) {
+                sent_erasure = true;
                 msg_target = ERASE;
                 break;
             } else if(v_value == NONE) {
@@ -86,6 +93,7 @@ void Check::send_messages() {
         //DEBUG("c" << this->index << " sending " << msg_target << " to v" << v_target->index << endl);
         v_target->chks[this] = msg_target;
     }
+    return sent_erasure;
         
 }
 
@@ -220,24 +228,56 @@ public:
     }
 
     int decode(int iterations) {
-        // TODO: only run BEC-SPA on undecoded variables
-        // TODO: only run BEC-SPA on undecoded checks; connected vars can be removed
         // TODO: stop when no erasures remain
 
         // run check step
 
         DEBUG("decoding..." << endl);
 
+        list_chk active_checks;
+
+        for(vec_chk_it it = this->chks.begin(); it != this->chks.end(); ++it) {
+            active_checks.push_back(*it);
+        }
+
+        list_var active_variables;
+
+        for(vec_var_it it = this->vars.begin(); it != this->vars.end(); ++it) {
+            active_variables.push_back(*it);
+        }
 
         for(int i = 0; i < iterations; ++i) {
-            for(vec_chk_it it = this->chks.begin(); it != this->chks.end(); ++it) {
+            if(active_variables.size() == 0 && active_checks.size() == 0) {
+                break;
+            }
+
+            /*for(vec_chk_it it = this->chks.begin(); it != this->chks.end(); ++it) {
                 Check *c = *it;
                 c->send_messages();
+            }*/
+            list_chk next_checks;
+            for(list_chk_it it = active_checks.begin(); it != active_checks.end(); ++it) {
+                Check *c = *it;
+                bool sent_erasure = c->send_messages();
+                if(sent_erasure) {
+                    next_checks.push_back(c);
+                }
             }
-            for(vec_var_it it = this->vars.begin(); it != this->vars.end(); ++it) {
+            active_checks = next_checks;
+
+            /*for(vec_var_it it = this->vars.begin(); it != this->vars.end(); ++it) {
                 Variable *v = *it;
                 v->update_value();
+            }*/
+            list_var next_variables;
+            for(list_var_it it = active_variables.begin(); it != active_variables.end(); ++it) {
+                Variable *v = *it;
+                v->update_value();
+                if(v->value == ERASE) {
+                    next_variables.push_back(v);
+                }
             }
+            active_variables = next_variables;
             //this->print_variables();
         }
         
@@ -264,7 +304,6 @@ public:
             }
             sim_count++;
         }
-        cout << "sim count: " << sim_count << endl;
         float ber = (float)bit_error_count/(float)(sim_count*this->vars.size());
         return ber;
     }
@@ -293,12 +332,25 @@ int main(int argc, char** argv) {
     //g.print_variables();
 
     float start_p_erase = 0.25;
+    //float start_p_erase = 0.35;
     float stop_p_erase = 0.50;
-    float step_p_erase = (stop_p_erase - start_p_erase) / 20.;
+    float step_p_erase = (stop_p_erase - start_p_erase) / 40.;
+
+    cout << "epsilon ";
     for(float p_erase = start_p_erase; p_erase < stop_p_erase; p_erase+=step_p_erase) {
-        unsigned int iters = 10;
-        unsigned int block_errors = 100;
-        cout << g.test_ber(p_erase, iters, block_errors) << endl;
+            cout << " " << p_erase;
+    }
+    cout << endl;
+
+    int iter_list[] = {1,3,5,10,15,20,25,30};
+    for(unsigned int i = 0; i < sizeof(iter_list); i++) {
+        unsigned int iters = iter_list[i];
+        cout << iters;
+        for(float p_erase = start_p_erase; p_erase < stop_p_erase; p_erase+=step_p_erase) {
+            unsigned int block_errors = 100;
+            cout << " " << g.test_ber(p_erase, iters, block_errors);
+        }
+        cout << endl;
     }
 
 }
