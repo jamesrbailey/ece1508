@@ -1,0 +1,85 @@
+ECE1508 Problem Set #3
+March 22 2015
+James Bailey
+
+This readme file describes the deliverables for problem 3.6 and 3.7.
+
+I have written this assigmnent primarily in C++.  Initially I tried adapting my Python
+scripts from the previous assignment, but they were way too slow.
+
+Software requirements:
+    * g++ with support for C++/11 (or some other C++/11 compiler)
+    * Make
+    * Python 2.7.x
+    * scipy Python package (www.scipy.org)
+    * numpy Python package (should be included in scipy)
+    * matplotlib Python package (should be included in scipy)
+    * pulp Python package (pypi.python.org/pypi/PuLP)
+
+opt.py:
+        This is my linear program solver for the variable degree distribution problem.
+        It optimizes the threshold via lambda(x) for a design rate of 0.5.
+        The output is lambda(x), design rate, and threshold for each of r=5,6,7.
+
+        The program uses the PuLP linear program package for Python.  This package
+        itself usages the GLPK backend.
+
+        I have expressed the constraints described in the problem set.  Additionally
+        I have added a lambda(x) normalization constraint.
+
+        I have divided the continuous f(e,x) < x constraint into 40 discrete constraints.
+        I also tried up to 200, but I found it didn't significantly affect the results,
+        while it did have a negative affect on runtime.
+
+        The program optimizes lambda(x) given a fixed erasure threshold.  It then checks
+        the resulting design rate, and then adjusts the target threshold, and runs again.
+        This process is implemented inside of a binary search algorithm on the threshold,
+        where the exit condition is when the design rate is within 1E-4 of the 0.5 target.
+
+        Inside this binary search procedure I have also implemented a heuristic l_max
+        optimizer to speed up runtime.  The initial l_max is set to 100, for each subsequent
+        iteration l_max is set to the average of its current value and the largest observed
+        non zero i'th coefficient.
+
+Makefile:
+        Used to compile the C++ code for the SPA simulator.  This is taken from ps2.
+        Usage: make
+
+spa.cc:
+        C++ script that implements the decoder and simulation.  This is taken from ps2.
+        Compiles with make flow to produce 'spa' binary.
+
+spa:
+        Compiled version of the assignment.  I have provided the latest compiled version
+        from my development, although it will only work on similar architectures (x86-64, Linux)
+        Usage: ./spa < code.txt
+
+parity_gen.py:
+        This script generates a random LDPC code for the degree distribution specified.
+        The format is the same as ps2.  I used this to generate all my codes.
+        Usage: ./parity_gen.py
+
+codes/*.txt:
+        These are my generated codes.
+
+results/*.data:
+        This is the generated simulation data from my codes.  The first row specifies the
+        erasure probability.  The second row specifies the BER at the corresponding erasure probability.
+
+plotResults.py:
+        Python script to plot results.  This loads the *.data files and plots the contents.
+        Only one plot displays at a time.  When you close one, the next will open up.
+        Usage: ./plotResults.py
+
+results/r<N>.png
+        For N=5,6,7 these are plots of BER performance for 10 randomly generated codes.
+
+results/avg.png
+        This is a plot of the average BER peformance of the 10 randomly generated codes
+        for each r=5,6,7. It also includes the average performance of the regular codes
+        generated in the previous assignment.
+
+average_data.py:
+        This script reads in one or more data files and outputs the average data for 
+        each erasure probability.  Data files must be generated under exactly the same
+        conditions.
