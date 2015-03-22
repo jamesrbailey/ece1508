@@ -1,0 +1,11 @@
+./parity_gen.py > codes/r5/c1_r5.txt
+./parity_gen.py > codes/r5/c2_r5.txt
+./parity_gen.py > codes/r5/c3_r5.txt
+./parity_gen.py > codes/r5/c4_r5.txt
+./parity_gen.py > codes/r5/c5_r5.txt
+./parity_gen.py > codes/r5/c6_r5.txt
+./parity_gen.py > codes/r5/c7_r5.txt
+./parity_gen.py > codes/r5/c8_r5.txt
+./parity_gen.py > codes/r5/c9_r5.txt
+./parity_gen.py > codes/r5/c10_r5.txt
+

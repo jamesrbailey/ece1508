@@ -1,0 +1,21 @@
+i=7
+echo c1
+./spa < codes/r$i/c1_r$i.txt > results/r$i/c1_r$i.data
+echo c2
+./spa < codes/r$i/c2_r$i.txt > results/r$i/c2_r$i.data
+echo c3
+./spa < codes/r$i/c3_r$i.txt > results/r$i/c3_r$i.data
+echo c4
+./spa < codes/r$i/c4_r$i.txt > results/r$i/c4_r$i.data
+echo c5
+./spa < codes/r$i/c5_r$i.txt > results/r$i/c5_r$i.data
+echo c6
+./spa < codes/r$i/c6_r$i.txt > results/r$i/c6_r$i.data
+echo c7
+./spa < codes/r$i/c7_r$i.txt > results/r$i/c7_r$i.data
+echo c8
+./spa < codes/r$i/c8_r$i.txt > results/r$i/c8_r$i.data
+echo c9
+./spa < codes/r$i/c9_r$i.txt > results/r$i/c9_r$i.data
+echo c10
+./spa < codes/r$i/c10_r$i.txt > results/r$i/c10_r$i.data
