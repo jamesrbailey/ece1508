@@ -1,0 +1,32 @@
+r=5
+lambda_02 = 0.41219295
+lambda_03 = 0.17736197
+lambda_04 = 0.11853289
+lambda_07 = 0.10937977
+lambda_08 = 0.18253242
+design rate: 0.499939
+epsilon: 0.481641
+
+r=6
+lambda_02 = 0.33863999
+lambda_03 = 0.14245879
+lambda_04 = 0.096385821
+lambda_06 = 0.11922015
+lambda_07 = 0.071134724
+lambda_15 = 0.064873236
+lambda_16 = 0.16728729
+design rate: 0.500002
+epsilon: 0.491748
+
+r=7
+lambda_02 = 0.2879355
+lambda_03 = 0.12254115
+lambda_04 = 0.088188941
+lambda_05 = 0.0011121546
+lambda_06 = 0.12907345
+lambda_07 = 0.013984156
+lambda_12 = 0.11254155
+lambda_13 = 0.055905012
+lambda_33 = 0.18871809
+design rate: 0.499984
+epsilon: 0.496143
