@@ -2,8 +2,6 @@
 
 from pulp import *
 
-#rho_exp = [5., 6., 7.]
-
 class LDPC_opt:
     def __init__(self):
         self.rho_exp = [5]
