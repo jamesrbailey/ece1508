@@ -16,6 +16,9 @@ Software requirements:
     * matplotlib Python package (should be included in scipy)
     * pulp Python package (pypi.python.org/pypi/PuLP)
 
+results/opt.log:
+        This contains the results of the optimizer program for each of r=5,6,7.
+
 opt.py:
         This is my linear program solver for the variable degree distribution problem.
         It optimizes the threshold via lambda(x) for a design rate of 0.5.
