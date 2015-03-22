@@ -38,8 +38,8 @@ opt.py:
 
         Inside this binary search procedure I have also implemented a heuristic l_max
         optimizer to speed up runtime.  The initial l_max is set to 100, for each subsequent
-        iteration l_max is set to the average of its current value and the largest observed
-        non zero i'th coefficient.
+        iteration l_max is set to the average of its current value and the 'i' of the largest 
+        non zero coefficient.
 
 Makefile:
         Used to compile the C++ code for the SPA simulator.  This is taken from ps2.
