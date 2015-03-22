@@ -3,7 +3,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('data_files', nargs='+',
-                           help='an integer for the accumulator')
+                           help='data files to be averaged')
 
 args = parser.parse_args()
 num_files = len(args.data_files)

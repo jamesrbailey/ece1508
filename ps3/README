@@ -4,8 +4,8 @@ James Bailey
 
 This readme file describes the deliverables for problem 3.6 and 3.7.
 
-I have written this assigmnent primarily in C++.  Initially I tried adapting my Python
-scripts from the previous assignment, but they were way too slow.
+I have written this assigmnent in Python, but have used the previous assignments
+simulator/decoder that was written in C++.
 
 Software requirements:
     * g++ with support for C++/11 (or some other C++/11 compiler)
