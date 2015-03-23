@@ -335,10 +335,10 @@ int main(int argc, char** argv) {
     //g.print_checks();
     //g.print_variables();
 
-    float start_p_erase = 0.005;
+    float start_p_erase = 0.25;
     //float start_p_erase = 0.35;
     float stop_p_erase = 0.50;
-    float step_p_erase = (stop_p_erase - start_p_erase) / 100.;
+    float step_p_erase = (stop_p_erase - start_p_erase) / 50.;
 
     //cout << "epsilon ";
     for(float p_erase = start_p_erase; p_erase < stop_p_erase; p_erase+=step_p_erase) {
@@ -350,7 +350,7 @@ int main(int argc, char** argv) {
     //int iter_list[] = {10};
     //for(unsigned int i = 0; i < sizeof(iter_list); i++) {
     for(unsigned int i = 0; i < 1; i++) {
-        unsigned int iters = 10;
+        unsigned int iters = 20;
         //cout << iters;
         for(float p_erase = start_p_erase; p_erase < stop_p_erase; p_erase+=step_p_erase) {
             unsigned int block_errors = 100;

@@ -22,7 +22,6 @@ def plot_file(filepath, label=None):
         #print y_data
         y_new = running_mean(y_data,window)
         x_new = np.linspace(x_data.min(), x_data.max(), y_new.shape[0])
-        x_new = np.linspace(0.25, x_data.max(), y_new.shape[0])
 
         shrink = int(float(window)/2+2)
         x_new = x_new[shrink:-shrink]
