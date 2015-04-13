@@ -2,50 +2,127 @@
 
 from pulp import *
 import itertools
+import random as rd
+import numpy as np
+import sys
 
 class Variable:
     def __init__(self):
         self.LpV = None
         self.llr = 0
+
     def __str__(self):
         return self.LpV.name
 
 class LP_Decode:
     def __init__(self):
         self.vs = []
+        self.test_code = [0., 0., 0., 1., 1., 1., 1.]
+        self.prob = LpProblem("LLR Error Minimization",LpMinimize)
 
     def create_vars(self,n):
         for i in range(n):
             var = Variable()
             var.LpV = LpVariable("v%d"%i,0,1)
+            var.actual = self.test_code[i]
             self.vs.append(var)
 
-    def constrain_parity(H):
-        for i in len(H):
-            checks = H[i]
-            for j in len(checks):
-                for S_size in range(1,len(variables),2):
-                    for S in itertools.combinations(variables, S_size):
-                        S_bar = [x for x in variables if x not in S]
-                        constraint = sum([v.LpV for v in S_bar]) + len(S)-sum([v.LpV for v in S]) >= 1.
-                        print constraint
+    def constrain_parity(self, H):
+        for row in H:
+            variables = []
+            for i in range(len(row)):
+                if row[i] == 1:
+                    variables.append(self.vs[i])
+                    
+            for S_size in range(1,len(variables),2):
+                for S in itertools.combinations(variables, S_size):
+                    S_bar = [x.LpV for x in variables if x not in S]
+                    S = [x.LpV for x in S]
+                    constraint = sum(S_bar) + len(S)-sum(S) >= 1.
+                    self.prob += constraint
+
+    def apply_bec(self, p_e):
+        for v in self.vs:
+            if rd.random() < p_e:
+                v.llr = 0.
+            else:
+                v.llr = 1E6 if v.actual == 0. else -1E6
+        self.update_cost()
+
+    def apply_bsc(self, p):
+        for v in self.vs:
+            if v.actual == 0.:
+                v.llr = +1 
+            elif v.actual == 1.:
+                v.llr = -1.
+
+            if rd.random() < p:
+                v.llr = -v.llr 
+
+        self.update_cost()
+
+    def apply_llr(self,llrs):
+        for i in range(len(llrs)):
+            self.vs[i].LpV.varValue = 1.
+            self.vs[i].llr = llrs[i]
+        self.update_cost()
+
+    def update_cost(self):
+        self.prob += sum([v.LpV * v.llr for v in self.vs])
+
+    def decode(self):
+        #print self.prob
+        self.prob.solve()
+        errors = 0
+        for v in self.vs:
+            if v.LpV.varValue != v.actual:
+                errors += 1
+
+        return errors
+
+    def test_bec(self, p_e):
+        self.apply_bec(p_e)
+        return self.decode()
+
+    def test_bsc(self, p):
+        self.apply_bsc(p)
+        return self.decode()
+
+def test_wer(p, channel):
+    word_errors = 0
+    trials = 0
+    print >> sys.stderr, 'p=%f'%p
+    while word_errors < 100:
+        decode = LP_Decode()
+        decode.create_vars(7)
+        decode.constrain_parity(H)
+
+        if channel == "bec":
+            result = decode.test_bec(p)
+        elif channel == "bsc":
+            result = decode.test_bsc(p)
+
+        if result > 0:
+            word_errors += 1
+
+        trials += 1
+        #print trials
+        if trials > 1E4:
+            break
+
+    return float(word_errors)/float(trials)
 
 
-decode = LP_Decode()
+H = [[0,0,0,1,1,1,1],
+     [0,1,1,0,0,1,1],
+     [1,0,1,0,1,0,1] ]
 
-#      0 0 0 1 1 1 1
-# H =  0 1 1 0 0 1 1
-#      1 0 1 0 1 0 1
+#becs = np.logspace(start=-9., stop=0., num=20, base=2, endpoint=True)
+#print ','.join(str(bec) for bec in becs)
+#print ','.join(str(test_wer(bec,"bec")) for bec in becs)
 
-H = [[0 0 0 1 1 1 1],
-     [0 1 1 0 0 1 1],
-     [1 0 1 0 1 0 1] ]
 
-decode.constrain_parity([vs[3], vs[4], vs[5], vs[6]])
-decode.constrain_parity([vs[1], vs[2], vs[5], vs[6]])
-decode.constrain_parity([vs[0], vs[2], vs[4], vs[6]])
-
-#prob = LpProblem("Erasure threshold maximization",LpMaximize)
-#prob += sum([l/float(i) for i, l in self.lambdas.iteritems()])
-
+wers = np.logspace(start=-9., stop=-1., num=20, base=2, endpoint=True)
+print ','.join(str(wer) for wer in wers)
+print ','.join(str(test_wer(wer,"bsc")) for wer in wers)
 
