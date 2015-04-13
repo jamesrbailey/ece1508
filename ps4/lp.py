@@ -5,6 +5,8 @@ import itertools
 import random as rd
 import numpy as np
 import sys
+import math
+from scipy.stats import norm
 
 class Variable:
     def __init__(self):
@@ -61,6 +63,15 @@ class LP_Decode:
 
         self.update_cost()
 
+    def apply_awgn(self, snr):
+        sigma = math.sqrt(1./(float(snr))
+
+        for v in self.vs:
+            noisy_val = rd.gauss(v.actual,sigma)
+            print noisy_val
+
+        self.update_cost()
+
     def apply_llr(self,llrs):
         for i in range(len(llrs)):
             self.vs[i].LpV.varValue = 1.
@@ -101,12 +112,16 @@ def test_wer(p, channel):
             result = decode.test_bec(p)
         elif channel == "bsc":
             result = decode.test_bsc(p)
+        elif channel == "awgn":
+            result = decode.test_awgn(p)
+        else:
+            raise Exception("invalid channel selected")
 
         if result > 0:
             word_errors += 1
 
         trials += 1
-        #print trials
+        #print trials, word_errors
         if trials > 1E4:
             break
 
@@ -117,12 +132,13 @@ H = [[0,0,0,1,1,1,1],
      [0,1,1,0,0,1,1],
      [1,0,1,0,1,0,1] ]
 
-#becs = np.logspace(start=-9., stop=0., num=20, base=2, endpoint=True)
-#print ','.join(str(bec) for bec in becs)
-#print ','.join(str(test_wer(bec,"bec")) for bec in becs)
+#becs = np.logspace(start=-2., stop=0., num=1, base=2, endpoint=True)
+becs = np.logspace(start=-4., stop=0., num=20, base=2, endpoint=True)
+print ','.join(str(bec) for bec in becs)
+print ','.join(str(test_wer(bec,"bec")) for bec in becs)
 
 
-wers = np.logspace(start=-9., stop=-1., num=20, base=2, endpoint=True)
-print ','.join(str(wer) for wer in wers)
-print ','.join(str(test_wer(wer,"bsc")) for wer in wers)
+#wers = np.logspace(start=-9., stop=-1., num=20, base=2, endpoint=True)
+#print ','.join(str(wer) for wer in wers)
+#print ','.join(str(test_wer(wer,"bsc")) for wer in wers)
 
