@@ -64,11 +64,16 @@ class LP_Decode:
         self.update_cost()
 
     def apply_awgn(self, snr):
-        sigma = math.sqrt(1./(float(snr))
+        sigma = math.sqrt(1./(float(snr)))
 
         for v in self.vs:
             noisy_val = rd.gauss(v.actual,sigma)
-            print noisy_val
+            #print noisy_val
+            # In AWGN the LLR starts as the ratio of the Q function on the distance from 0/1
+            p0 = norm(0.,sigma).pdf(noisy_val)
+            p1 = norm(1.,sigma).pdf(noisy_val)
+            v.llr = math.log(p0/p1)
+            #print v.actual, noisy_val, v.llr
 
         self.update_cost()
 
@@ -97,6 +102,10 @@ class LP_Decode:
 
     def test_bsc(self, p):
         self.apply_bsc(p)
+        return self.decode()
+
+    def test_awgn(self, snr):
+        self.apply_awgn(snr)
         return self.decode()
 
 def test_wer(p, channel):
@@ -132,13 +141,15 @@ H = [[0,0,0,1,1,1,1],
      [0,1,1,0,0,1,1],
      [1,0,1,0,1,0,1] ]
 
-#becs = np.logspace(start=-2., stop=0., num=1, base=2, endpoint=True)
-becs = np.logspace(start=-4., stop=0., num=20, base=2, endpoint=True)
-print ','.join(str(bec) for bec in becs)
-print ','.join(str(test_wer(bec,"bec")) for bec in becs)
+#becs = np.logspace(start=-4., stop=0., num=20, base=2, endpoint=True)
+#print ','.join(str(bec) for bec in becs)
+#print ','.join(str(test_wer(bec,"bec")) for bec in becs)
 
 
-#wers = np.logspace(start=-9., stop=-1., num=20, base=2, endpoint=True)
-#print ','.join(str(wer) for wer in wers)
-#print ','.join(str(test_wer(wer,"bsc")) for wer in wers)
+#bscs = np.logspace(start=-9., stop=-1., num=20, base=2, endpoint=True)
+#print ','.join(str(bsc) for bsc in bscs)
+#print ','.join(str(test_wer(bsc,"bsc")) for bsc in bscs)
 
+snrs = [2**4 - x + 1 for x in np.logspace(start=4., stop=0., num=20, base=2, endpoint=True)]
+print ','.join(str(snr) for snr in snrs)
+print ','.join(str(test_wer(snr,"awgn")) for snr in snrs)
