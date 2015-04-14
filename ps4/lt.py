@@ -78,7 +78,7 @@ class robust_soliton:
 
 
 k = int(10E3)
-#k = 20
+#k = 10
 c = 0.01
 delta = 0.5
 
@@ -90,22 +90,30 @@ rs_rv = stats.rv_discrete(values=(pmf.values(), pmf.probs()))
 tx_info_bits = list(stats.bernoulli.rvs(p=0.5, size=k))
 
 max_enc_bits = int(12E3)
-#max_enc_bits = 400
+#max_enc_bits = 12
 
 
 # this is the encoder.  there are some non-pythonic optimizations here.
 encoding = []  # represents encoding structure in terms of info bits indices
+info_to_enc = dict() # this is a reverse LUT to find encoder symbols that are connected to info bits
 enc_bits = []  # represents encoded symbols
 degrees = rs_rv.rvs(size=max_enc_bits)
 info_indices = range(k)
 for i in range(max_enc_bits):
     degree = degrees[i]
-    encoding.append(rd.sample(info_indices, degree))
+    info_bits = rd.sample(info_indices, degree)
+    encoding.append(info_bits)
     enc_bits.append(sum([tx_info_bits[x] for x in encoding[i]])%2)
+    for ib in info_bits:
+        if ib not in info_to_enc:
+            info_to_enc[ib] = []
+        info_to_enc[ib].append(i)
     #print encoding[i]
     #print enc_bits[i]
 
 
+#print encoding
+#print info_to_enc
 # decoder
 
 rx_info_bits = [None]*k
@@ -114,31 +122,56 @@ decoding = list(encoding)
 decoded = 0
 for i in range(max_enc_bits):
     rx_enc_bits.append(enc_bits.pop(0))
-    ripple = True
-    while ripple is True:
-        ripple = False
-        for j in range(i+1):
-            if len(decoding[j]) == 1:
-                if rx_info_bits[decoding[j][0]] is None:
-                    decoded += 1
-                    ripple = True
 
-                rx_info_bits[decoding[j].pop(0)] = rx_enc_bits[j]
-            else:
-                for nb in decoding[j]:
-                    if rx_info_bits[nb] is not None:
-                        rx_enc_bits[j] += rx_info_bits[nb]
-                        rx_enc_bits[j] %= 2
-                        decoding[j].remove(nb)
-                        ripple = True
-    print i, decoded
+
+
+    #ripple = True
+    #while ripple is True:
+    #    ripple = False
+    #    for j in range(i+1):
+    #        if len(decoding[j]) == 1:
+    #            if rx_info_bits[decoding[j][0]] is None:
+    #                decoded += 1
+    #                ripple = True
+
+    #            rx_info_bits[decoding[j].pop(0)] = rx_enc_bits[j]
+    #        else:
+    #            for nb in decoding[j]:
+    #                if rx_info_bits[nb] is not None:
+    #                    rx_enc_bits[j] += rx_info_bits[nb]
+    #                    rx_enc_bits[j] %= 2
+    #                    decoding[j].remove(nb)
+    #                    ripple = True
+
+    ripple = set([i])
+    while ripple:
+        j = ripple.pop()
+        if len(decoding[j]) == 1:
+            ib = decoding[j][0]
+            if rx_info_bits[ib] is None:
+                decoded += 1
+                print i, decoded
+                ripple.update([x for x in info_to_enc[ib] if x <= i])
+                #print "decoded", len(ripple)
+                    
+                rx_info_bits[ib] = rx_enc_bits[j]
+        else:
+            for nb in decoding[j]:
+                if rx_info_bits[nb] is not None:
+                    rx_enc_bits[j] += rx_info_bits[nb]
+                    rx_enc_bits[j] %= 2
+                    decoding[j].remove(nb)
+                    #ripple.update(range(i+1))
+                    ripple.add(j)
+                    #print "neighbour", len(ripple)
+
     if decoded == k:
         break
 
     #print rx_enc_bits
 matched = True
 for i in range(k):
-    if tx_info_bits[i] != tx_info_bits[i]:
+    if tx_info_bits[i] != rx_info_bits[i]:
         matched = False
 
 if matched is True:
