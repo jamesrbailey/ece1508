@@ -114,24 +114,36 @@ decoding = list(encoding)
 decoded = 0
 for i in range(max_enc_bits):
     rx_enc_bits.append(enc_bits.pop(0))
-    for j in range(i+1):
-        if len(decoding[j]) == 1:
-            if rx_info_bits[decoding[j][0]] is None:
-                decoded += 1
+    ripple = True
+    while ripple is True:
+        ripple = False
+        for j in range(i+1):
+            if len(decoding[j]) == 1:
+                if rx_info_bits[decoding[j][0]] is None:
+                    decoded += 1
+                    ripple = True
 
-            rx_info_bits[decoding[j].pop(0)] = rx_enc_bits[j]
-        else:
-            for nb in decoding[j]:
-                if rx_info_bits[nb] is not None:
-                    rx_enc_bits[j] += rx_info_bits[nb]
-                    rx_enc_bits[j] %= 2
-                    decoding[j].remove(nb)
+                rx_info_bits[decoding[j].pop(0)] = rx_enc_bits[j]
+            else:
+                for nb in decoding[j]:
+                    if rx_info_bits[nb] is not None:
+                        rx_enc_bits[j] += rx_info_bits[nb]
+                        rx_enc_bits[j] %= 2
+                        decoding[j].remove(nb)
+                        ripple = True
     print i, decoded
     if decoded == k:
         break
 
     #print rx_enc_bits
-print tx_info_bits
-print rx_info_bits
+matched = True
+for i in range(k):
+    if tx_info_bits[i] != tx_info_bits[i]:
+        matched = False
+
+if matched is True:
+    print "passed"
+else:
+    print "failed"
 
 
