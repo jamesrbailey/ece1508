@@ -22,39 +22,62 @@ encoder = dict()
 for i in range(16):
     m = bitvector(i)
     cw = np.dot(m, G) % 2
-    encoder[i] = cw
+    encoder[i] = [str(x) for x in cw[0]]
 
 def distance(a,b):
     return np.linalg.norm(a-b)
 
 def decode_ml(y):
-    return encoder[np.argmin([distance(y, cw) for cw in encoder.values()])]
+    return encoder[np.argmin([distance_hamming(y, cw) for cw in encoder.values()])]
+
+def distance_bec(x,y):
+    d = 0
+    #print x, y
+    for xb,yb in zip(x,y):
+        #xb = str(xb)
+        #yb = str(yb)
+        #print xb, yb
+        if xb == "e" or yb == "e":
+            next
+        elif xb != yb:
+            d += 1
+    return d
+
+def distance_hamming(x,y):
+    d = 0
+    for xb,yb in zip(x,y):
+        if xb != yb:
+            d += 1
+    return d
+
 
 def decode_ml_bec(y):
-    best_cw = None
     for cw in encoder.values():
-        cw = cw[0]
-        match = True
-        for i in range(len(y)):
-            if (y[i] != "e") and (int(y[i]) != cw[i]):
-                match = False
-                break
+        if distance_bec(cw, y) == 0:
+            return cw
 
-        if match == True:
-                best_cw = cw
-                break
-    return best_cw
+    print x
+    raise Exception("could not decode")
 
 def channel_bsc(x, p):
     if p > 0.5:  # this is kind of a kludge since my ML decoder assumes p<0.5 and does minimum distance
         p = 1-p
-    out = np.array([(b,b^1)[rd.random() < p] for b in np.nditer(x)])
-    #print x,"-->", out
+    out = []
+    for xb in x:
+        if rd.random() < p:
+            if x == "1":
+                ob = "0"
+            else:
+                ob = "1"
+        else:
+            ob = xb
+        out.append(ob)
+
     return out
 
 def channel_bec(x, p):
     # Erasure is denoted by 0.5 output value. This works well with subsequent decoding.
-    out = np.array([(b,"e")[rd.random() < p] for b in np.nditer(x)])
+    out = [(b,"e")[rd.random() < p] for b in x]
     #print x,"-->", out
     return out
 
@@ -71,38 +94,39 @@ def testbench(decode, channel, channel_params):
     for k in channel_params:
         error_count = 0
         trials = 0
-        while error_count < 100 and trials < 1E5:
+        while error_count < 200 and trials < 1E5:
             trials += 1
             m = rd.randint(0,15)
             x = encoder[m]
             y = channel(x, k)
             x_hat = decode(y)
-            if distance(x_hat, x) > 0:
-                error_count += 1
-            if trials % 100 == 0:
+            for xb,xhb in zip(x,x_hat):
+                if xb != xhb:
+                    error_count += 1
+                    break
+
+            if trials % 10000 == 0:
                 print trials, error_count
+
         wer = error_count/float(trials)
+        print trials,error_count,wer
         word_error.append(wer)
 
-        print k, wer
     return word_error
 
 
-#params = np.logspace(start=-8., stop=0., num=30, base=2, endpoint=False)
-#wers = testbench(decode_ml, channel_bsc, params)
-#with open("bsc_ex.data", "w") as f:
+params = np.logspace(start=-8., stop=0., num=30, base=2, endpoint=False)
+wers = testbench(decode_ml, channel_bsc, params)
+print ','.join(str(p) for p in params)
+print ','.join(str(wer) for wer in wers)
+
+#params = np.logspace(start=-8., stop=0., num=50, base=2, endpoint=False)
+#wers = testbench(decode_ml_bec, channel_bec, params)
+#with open("bec_ex.data", "w") as f:
 #    f.write(",".join([str(r) for r in wers])+'\n')
 #    f.write(",".join([str(p) for p in params])+'\n')
 #print ','.join(str(p) for p in params)
 #print ','.join(str(wer) for wer in wers)
-
-params = np.logspace(start=-3., stop=0., num=30, base=2, endpoint=False)
-wers = testbench(decode_ml_bec, channel_bec, params)
-#with open("bec_ex.data", "w") as f:
-#    f.write(",".join([str(r) for r in wers])+'\n')
-#    f.write(",".join([str(p) for p in params])+'\n')
-print ','.join(str(p) for p in params)
-print ','.join(str(wer) for wer in wers)
 
 #params = np.logspace(start=3.0, stop=-4, num=120, base=2)
 #wers = testbench(decode_ml, channel_awgn, params)

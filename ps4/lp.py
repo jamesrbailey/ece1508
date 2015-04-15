@@ -160,18 +160,19 @@ H = [[0,0,0,1,1,1,1],
      [1,0,1,0,1,0,1] ]
 
 
-max_ex = 5
+max_ex = 4
 #becs = np.logspace(start=-float(max_ex), stop=0., num=30, base=2, endpoint=True)
 #print becs
 #print ','.join(str(bec) for bec in becs)
 #print ','.join(str(test_wer(bec,"bec")) for bec in becs)
 
 
-bscs = np.logspace(start=-float(max_ex), stop=0., num=30, base=2, endpoint=True)
-wers = [test_wer(bsc,"bsc") for bsc in bscs]
-print ','.join(str(bsc) for bsc in bscs)
-print ','.join(str(wer) for wer in wers)
+#bscs = np.logspace(start=-float(max_ex), stop=0., num=30, base=2, endpoint=True)
+#wers = [test_wer(bsc,"bsc") for bsc in bscs]
+#print ','.join(str(bsc) for bsc in bscs)
+#print ','.join(str(wer) for wer in wers)
 
-#snrs = [2**max_ex - x + 1 for x in np.logspace(start=float(max_ec), stop=0., num=20, base=2, endpoint=True)]
-#print ','.join(str(snr) for snr in snrs)
-#print ','.join(str(test_wer(snr,"awgn")) for snr in snrs)
+snrs = [2**max_ex - x + 1 for x in np.logspace(start=float(max_ex), stop=0., num=20, base=2, endpoint=True)]
+#snrs = np.logspace(start=0, stop=max_ex., num=20, base=2, endpoint=True)
+print ','.join(str(snr) for snr in snrs)
+print ','.join(str(test_wer(snr,"awgn")) for snr in snrs)
