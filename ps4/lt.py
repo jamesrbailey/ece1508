@@ -2,7 +2,12 @@
 
 import random as rd
 import math
+import sys
 import scipy.stats as stats
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("c")
+args = parser.parse_args()
 
 class robust_soliton:
     def __init__(self, k, c, delta):
@@ -71,112 +76,76 @@ class robust_soliton:
             mass = self.pmf_robust_soliton(i)
             cdf += mass
             print mass, cdf
-#pmf_rs.test_ideal_soliton()
-#pmf_rs.test_tau()
-#pmf_rs.test_robust_soliton()
-
 
 
 k = int(10E3)
-#k = 10
-c = 0.01
+c = float(args.c)
 delta = 0.5
 
-pmf = robust_soliton(k, c, delta)
-
-rs_rv = stats.rv_discrete(values=(pmf.values(), pmf.probs()))
-#print rv.rvs(size=1000)
-
-tx_info_bits = list(stats.bernoulli.rvs(p=0.5, size=k))
-
-max_enc_bits = int(12E3)
-#max_enc_bits = 12
-
-
-# this is the encoder.  there are some non-pythonic optimizations here.
-encoding = []  # represents encoding structure in terms of info bits indices
-info_to_enc = dict() # this is a reverse LUT to find encoder symbols that are connected to info bits
-enc_bits = []  # represents encoded symbols
-degrees = rs_rv.rvs(size=max_enc_bits)
-info_indices = range(k)
-for i in range(max_enc_bits):
-    degree = degrees[i]
-    info_bits = rd.sample(info_indices, degree)
-    encoding.append(info_bits)
-    enc_bits.append(sum([tx_info_bits[x] for x in encoding[i]])%2)
-    for ib in info_bits:
-        if ib not in info_to_enc:
-            info_to_enc[ib] = []
-        info_to_enc[ib].append(i)
-    #print encoding[i]
-    #print enc_bits[i]
-
-
-#print encoding
-#print info_to_enc
-# decoder
-
-rx_info_bits = [None]*k
-rx_enc_bits = []
-decoding = list(encoding)
-decoded = 0
-for i in range(max_enc_bits):
-    rx_enc_bits.append(enc_bits.pop(0))
-
-
-
-    #ripple = True
-    #while ripple is True:
-    #    ripple = False
-    #    for j in range(i+1):
-    #        if len(decoding[j]) == 1:
-    #            if rx_info_bits[decoding[j][0]] is None:
-    #                decoded += 1
-    #                ripple = True
-
-    #            rx_info_bits[decoding[j].pop(0)] = rx_enc_bits[j]
-    #        else:
-    #            for nb in decoding[j]:
-    #                if rx_info_bits[nb] is not None:
-    #                    rx_enc_bits[j] += rx_info_bits[nb]
-    #                    rx_enc_bits[j] %= 2
-    #                    decoding[j].remove(nb)
-    #                    ripple = True
-
-    ripple = set([i])
-    while ripple:
-        j = ripple.pop()
-        if len(decoding[j]) == 1:
-            ib = decoding[j][0]
-            if rx_info_bits[ib] is None:
-                decoded += 1
-                print i, decoded
-                ripple.update([x for x in info_to_enc[ib] if x <= i])
-                #print "decoded", len(ripple)
-                    
-                rx_info_bits[ib] = rx_enc_bits[j]
-        else:
-            for nb in decoding[j]:
-                if rx_info_bits[nb] is not None:
-                    rx_enc_bits[j] += rx_info_bits[nb]
-                    rx_enc_bits[j] %= 2
-                    decoding[j].remove(nb)
-                    #ripple.update(range(i+1))
-                    ripple.add(j)
-                    #print "neighbour", len(ripple)
-
-    if decoded == k:
-        break
-
-    #print rx_enc_bits
-matched = True
-for i in range(k):
-    if tx_info_bits[i] != rx_info_bits[i]:
-        matched = False
-
-if matched is True:
-    print "passed"
-else:
-    print "failed"
-
+for trial in range(250):
+    pmf = robust_soliton(k, c, delta)
+    
+    rs_rv = stats.rv_discrete(values=(pmf.values(), pmf.probs()))
+    
+    tx_info_bits = list(stats.bernoulli.rvs(p=0.5, size=k))
+    
+    max_enc_bits = int(12E3)
+    
+    
+    # this is the encoder.  there are some non-pythonic optimizations here.
+    encoding = []  # represents encoding structure in terms of info bits indices
+    info_to_enc = dict() # this is a reverse LUT to find encoder symbols that are connected to info bits
+    enc_bits = []  # represents encoded symbols
+    degrees = rs_rv.rvs(size=max_enc_bits)
+    info_indices = range(k)
+    for i in range(max_enc_bits):
+        degree = degrees[i]
+        info_bits = rd.sample(info_indices, degree)
+        encoding.append(info_bits)
+        enc_bits.append(sum([tx_info_bits[x] for x in encoding[i]])%2)
+        for ib in info_bits:
+            if ib not in info_to_enc:
+                info_to_enc[ib] = []
+            info_to_enc[ib].append(i)
+    
+    
+    rx_info_bits = [None]*k
+    rx_enc_bits = []
+    decoding = list(encoding)
+    decoded = 0
+    for i in range(max_enc_bits):
+        rx_enc_bits.append(enc_bits.pop(0))
+    
+        ripple = set([i])
+        while ripple:
+            j = ripple.pop()
+            if len(decoding[j]) == 1:
+                ib = decoding[j][0]
+                if rx_info_bits[ib] is None:
+                    decoded += 1
+                    ripple.update([x for x in info_to_enc[ib] if x <= i])
+                    rx_info_bits[ib] = rx_enc_bits[j]
+    
+            else:
+                for nb in decoding[j]:
+                    if rx_info_bits[nb] is not None:
+                        rx_enc_bits[j] += rx_info_bits[nb]
+                        rx_enc_bits[j] %= 2
+                        decoding[j].remove(nb)
+                        ripple.add(j)
+    
+        symbols_required = i+1
+        if decoded == k:
+            break
+    
+    matched = True
+    for i in range(k):
+        if tx_info_bits[i] != rx_info_bits[i]:
+            matched = False
+    
+    print symbols_required
+    sys.stdout.flush()
+    if matched is False and symbols_required < max_enc_bits:
+        print "failed"
+    
 
