@@ -8,6 +8,7 @@ import sys
 import math
 from scipy.stats import norm
 
+
 class Variable:
     def __init__(self):
         self.LpV = None
@@ -17,9 +18,9 @@ class Variable:
         return self.LpV.name
 
 class LP_Decode:
-    def __init__(self):
+    def __init__(self,code):
         self.vs = []
-        self.test_code = [0., 0., 0., 1., 1., 1., 1.]
+        self.test_code = code
         self.prob = LpProblem("LLR Error Minimization",LpMinimize)
 
     def create_vars(self,n):
@@ -88,6 +89,7 @@ class LP_Decode:
 
     def decode(self):
         #print self.prob
+        #self.prob.solve(solver=solvers.COIN_CMD())
         self.prob.solve()
         errors = 0
         for v in self.vs:
@@ -109,11 +111,27 @@ class LP_Decode:
         return self.decode()
 
 def test_wer(p, channel):
+    encoder = dict()
+    G = np.array([[ 1, 0, 0, 0, 0, 1, 1],
+                  [ 0, 1, 0, 0, 1, 0, 1],
+                  [ 0, 0, 1, 0, 1, 1, 0],
+                  [ 0, 0, 0, 1, 1, 1, 1] ])
+    def bitvector(i):
+        return np.array([[(i>>x)&1 for x in list(reversed(range(4)))]])
+    for i in range(16):
+        m = bitvector(i)
+        cw = (np.dot(m, G) % 2)[0].tolist()
+        encoder[i] = cw
+
+
     word_errors = 0
     trials = 0
     print >> sys.stderr, 'p=%f'%p
     while word_errors < 100:
-        decode = LP_Decode()
+        m = rd.randint(0,15)
+        x = encoder[m]
+        decode = LP_Decode(x)
+        #print decode.test_code
         decode.create_vars(7)
         decode.constrain_parity(H)
 
@@ -130,26 +148,30 @@ def test_wer(p, channel):
             word_errors += 1
 
         trials += 1
-        #print trials, word_errors
+        if trials%100 == 0:
+            print trials, word_errors
         if trials > 1E4:
             break
 
     return float(word_errors)/float(trials)
 
-
 H = [[0,0,0,1,1,1,1],
      [0,1,1,0,0,1,1],
      [1,0,1,0,1,0,1] ]
 
-#becs = np.logspace(start=-4., stop=0., num=20, base=2, endpoint=True)
+
+max_ex = 5
+#becs = np.logspace(start=-float(max_ex), stop=0., num=30, base=2, endpoint=True)
+#print becs
 #print ','.join(str(bec) for bec in becs)
 #print ','.join(str(test_wer(bec,"bec")) for bec in becs)
 
 
-#bscs = np.logspace(start=-9., stop=-1., num=20, base=2, endpoint=True)
-#print ','.join(str(bsc) for bsc in bscs)
-#print ','.join(str(test_wer(bsc,"bsc")) for bsc in bscs)
+bscs = np.logspace(start=-float(max_ex), stop=0., num=30, base=2, endpoint=True)
+wers = [test_wer(bsc,"bsc") for bsc in bscs]
+print ','.join(str(bsc) for bsc in bscs)
+print ','.join(str(wer) for wer in wers)
 
-snrs = [2**4 - x + 1 for x in np.logspace(start=4., stop=0., num=20, base=2, endpoint=True)]
-print ','.join(str(snr) for snr in snrs)
-print ','.join(str(test_wer(snr,"awgn")) for snr in snrs)
+#snrs = [2**max_ex - x + 1 for x in np.logspace(start=float(max_ec), stop=0., num=20, base=2, endpoint=True)]
+#print ','.join(str(snr) for snr in snrs)
+#print ','.join(str(test_wer(snr,"awgn")) for snr in snrs)
