@@ -2,18 +2,18 @@
 import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
-import glob
-from scipy import interpolate
 
 matplotlib.rc('font', family='Computer Modern') 
 matplotlib.rc('text', usetex=True)
 
 
 def plot_file(filepath, label=None):
-    data = np.genfromtxt(filepath,dtype=float,delimiter=",")
-    x_data = data[0]
-    y_data = data[1]
-    plt.hist(x_data,y_data,histtype='step')
+    data = np.genfromtxt(filepath,dtype=int)
+    mean = int(np.mean(data))
+    var = int(np.var(data))
+    plt.hist(data, bins=50, histtype='step')
+    plt.annotate('$\mu=%d ~~ \sigma^2=%d$'%(mean,var), xy=(0.9, 0.9), xycoords='axes fraction', fontsize=16,
+                            horizontalalignment='right', verticalalignment='top')
 
 def plot_show(name, x_label, legend=None):
 
@@ -23,10 +23,15 @@ def plot_show(name, x_label, legend=None):
         plt.legend(title=None, loc="lower left")
     plt.title(name)
     plt.xlabel(x_label)
-    plt.ylabel("Number encoded symbols")
+    plt.ylabel("Occurences")
     #plt.yscale("log")
     plt.show()
 
-plot_file("results/lt_c0p01.data", label=r'$LP$')
-plot_show(name="LT Performance, $c=0.01$", x_label="Crossover Probability", legend="Decode")
+plot_file("results/lt_0p01.data", label=r'$LP$')
+plot_show(name="LT Code Rate, $k=10^4, c=0.01$", x_label="Number encoded symbols")
 
+plot_file("results/lt_0p03.data", label=r'$LP$')
+plot_show(name="LT Code Rate, $k=10^4, c=0.03$", x_label="Number encoded symbols")
+
+plot_file("results/lt_0p1.data", label=r'$LP$')
+plot_show(name="LT Code Rate, $k=10^4, c=0.1$", x_label="Number encoded symbols")

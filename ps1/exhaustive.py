@@ -77,8 +77,7 @@ def testbench(decode, channel, channel_params):
             x = encoder[m]
             y = channel(x, k)
             x_hat = decode(y)
-            errors = x_hat ^ x
-            if np.count_nonzero(errors) > 0:
+            if distance(x_hat, x) > 0:
                 error_count += 1
             if trials % 100 == 0:
                 print trials, error_count

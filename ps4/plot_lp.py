@@ -39,25 +39,6 @@ def plot_show(name, x_label, legend=None):
     plt.yscale("log")
     plt.show()
 
-def plot_dir(dir):
-    for path in glob.glob(dir+"/*.data"):
-        plot_file(path, label="c1, r=5")
-
-#plot_dir("results/r5")
-#plot_show(name=r'$LDPC(1200, \lambda_{opt1}(x), x^5)$', x_label="Erasure Probability")
-#
-#plot_dir("results/r6")
-#plot_show(name=r'$LDPC(1200, \lambda_{opt2}(x), x^6)$', x_label="Erasure Probability")
-#
-#plot_dir("results/r7")
-#plot_show(name=r'$LDPC(1200, \lambda_{opt3}(x), x^7)$', x_label="Erasure Probability")
-#
-#plot_file("results/avg_reg.data", label=r'$LDPC(1200, x^2, x^5)$')
-#plot_file("results/r5_avg.data", label=r'$LDPC(1200, \lambda_{opt1}(x), x^5)$')
-#plot_file("results/r6_avg.data", label=r'$LDPC(1200, \lambda_{opt2}(x), x^6)$')
-#plot_file("results/r7_avg.data", label=r'$LDPC(1200, \lambda_{opt3}(x), x^7)$')
-#plt.ylim([10E-6,1E0])
-#plot_show(name="Performance over 10 random codes", x_label="Erasure Probability", legend="Ensemble")
 
 plot_file("results/bp_bec.data", label=r'$BP$')
 plot_file("results/ml_bec.data", label=r'$ML$')
