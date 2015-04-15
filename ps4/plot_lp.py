@@ -17,6 +17,9 @@ def plot_file(filepath, label=None):
     data = np.genfromtxt(filepath,dtype=float,delimiter=",")
     x_data = data[0]
     y_data = data[1]
+    if filepath == "results/lp_awgn.data":
+        x_data = [x/2. for x in x_data]
+
     window = 3
     y_data = running_mean(y_data,window)
     print y_data,x_data
