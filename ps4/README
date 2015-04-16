@@ -1,0 +1,55 @@
+ECE1508 Problem Set #4
+April 10 2015
+James Bailey
+
+This readme file describes the deliverables for problem set 4.
+
+I have written this assigmnent in Python, but have used the previous assignments
+simulator/decoder that was written in C++.
+
+Software requirements:
+    * g++ with support for C++/11 (or some other C++/11 compiler)
+    * Make
+    * Python 2.7.x
+    * scipy Python package (www.scipy.org)
+    * numpy Python package (should be included in scipy)
+    * matplotlib Python package (should be included in scipy)
+    * pulp Python package (pypi.python.org/pypi/PuLP)
+
+results/*.data
+        This contains the logged data results from each question.  I used this data
+        in my plotter scripts.
+
+lt_plot.py:
+        Python script to plot results. This is for the LT code question. 
+
+lp_plot.py:
+        Python script to plot results. This is for the LP decoder question.
+
+raptor_plot.py:
+        Python script to plot results. This is for the raptor code question.
+
+lt.py:
+        This is the LT code decoder program.
+lp.py:
+        This is the LP decoder program.
+
+raptor.py:
+        This is the LT portion of the raptor code program.
+
+Makefile:
+        Used to compile the C++ code for the SPA simulator.  This is taken from ps2.
+        Usage: make
+
+spa.cc:
+        C++ script that implements the decoder and simulation.  This is taken from ps2.
+        This is used in the raptor code question for the precoder.
+        Compiles with make flow to produce 'spa' binary.
+
+spa:
+        Compiled version of the assignment.  I have provided the latest compiled version
+        from my development, although it will only work on similar architectures (x86-64, Linux)
+        Usage: ./spa < code.txt
+
+plots/*.pdf:
+        Plots for each question are here.  They are what is in the printed assignment.
