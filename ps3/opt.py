@@ -33,8 +33,8 @@ class LDPC_opt:
 
     def optimize_for_rate(self, target_rate):
         self.l_max = 100
-        t_min = 0.3
-        t_max = 0.6
+        t_min = 0.1
+        t_max = 1.0
         while True:
             t = (t_max+t_min)/2.
             ensemble.optimize_lambda(t)
@@ -55,6 +55,8 @@ class LDPC_opt:
                 t_min = t
 
             self.l_max = int((self.l_max + l_biggest)/2. + 1)
+            if t == t_min:
+                break
         return t
         
     @property
@@ -77,11 +79,11 @@ ensemble.print_info()
 print "epsilon: %f" % t
 
 ensemble.rho_exp = [6]
-t = ensemble.optimize_for_rate(0.5)
+t = ensemble.optimize_for_rate(0.4)
 ensemble.print_info()
 print "epsilon: %f" % t
 
 ensemble.rho_exp = [7]
-t = ensemble.optimize_for_rate(0.5)
+t = ensemble.optimize_for_rate(0.3)
 ensemble.print_info()
 print "epsilon: %f" % t

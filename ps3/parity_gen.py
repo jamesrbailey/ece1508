@@ -5,8 +5,9 @@ import random
 def integral_1_0(degs):
     return sum([lda/float(i) for i,lda in degs.iteritems()])
 
-n = 1200
+n = 10000
 var_degs = {2: 0.41219295, 3: 0.17736197, 4: 0.11853289, 7: 0.10937977, 8: 0.18253242}
+var_degs = {3: 1}
 chk_degs = {6: 1}
 #var_degs = {02 : 0.33863999, 03 : 0.14245879, 04 : 0.096385821, 06 : 0.11922015, 07 : 0.071134724, 15 : 0.064873236, 16 : 0.16728729}
 #chk_degs = {7: 1}
