@@ -1,4 +1,5 @@
 #include <boost/program_options.hpp>
+#include <boost/format.hpp>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -18,6 +19,7 @@
 
 // TODO: don't use namespace std.  In retrospect I think this is bad practice.
 using namespace std;
+using boost::format;
 namespace po = boost::program_options;
 
 enum msg {NONE=0x4, ERASE=0x2, ONE=0x1, ZERO=0x0};
@@ -53,7 +55,7 @@ public:
     unsigned int index;
     msg value;
     Variable(int _index);
-    int apply_channel(float p_e);
+    int apply_channel(double p_e);
     map_chk_val chks;
     msg update_value();
 
@@ -107,8 +109,8 @@ Variable::Variable(int _index) {
     this->value = ZERO;
 }
 
-int Variable::apply_channel(float p_e) {
-    float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX); 
+int Variable::apply_channel(double p_e) {
+    double r = static_cast <double> (rand()) / static_cast <double> (RAND_MAX); 
     if(p_e > r) {
         this->value = ERASE;
     }
@@ -213,7 +215,7 @@ public:
         }
     }
 
-    int apply_channel(float p_e) {
+    int apply_channel(double p_e) {
         for(vec_var_it it = this->vars.begin(); it != this->vars.end(); ++it) {
             (*it)->apply_channel(p_e);
             DEBUG("v" << (*it)->index << " value: " << (*it)->value << endl);
@@ -292,7 +294,7 @@ public:
         return bit_errors;
     }
 
-    float test_ber(float p_e, unsigned int iterations, unsigned int block_error_threshold) {
+    double test_ber(double p_e, unsigned int iterations, unsigned int block_error_threshold) {
         unsigned int block_error_count = 0;
         unsigned int bit_error_count = 0;
         unsigned int sim_count = 0;
@@ -306,11 +308,11 @@ public:
             }
             sim_count++;
             //cout << sim_count << ">" << (1E7 / this->vars.size()) << endl;
-            if(1/((float)sim_count*(float)this->vars.size())<1E-7){
+            if(1/((double)sim_count*(double)this->vars.size())<1E-7){
                 break;  // if we can't get any errors we should abort
             }
         }
-        float ber = (float)bit_error_count/(float)(sim_count*this->vars.size());
+        double ber = (double)bit_error_count/(double)(sim_count*this->vars.size());
         return ber;
     }
 };
@@ -323,21 +325,25 @@ int main(int argc, char** argv) {
     srand ( time(NULL) );
     #endif
 
-    std::string parity_check_file;
+    string parity_check_file;
     unsigned int term_length;
-    double start_pe, stop_pe;
-    unsigned int num_pe;
+    unsigned int decode_iters;
+    unsigned int block_errors;
+    double pe_start, pe_stop;
+    unsigned int pe_num;
 
     try {
         //setup the program options
         po::options_description desc("Allowed options");
         desc.add_options()
-            ("help", "help message")
+            ("help,h", "help message")
             ("parity-file", po::value<std::string>(&parity_check_file)->required(), "parity check matrix file")
             ("l", po::value<unsigned int>(&term_length)->default_value(1), "termination length of coupling")
-            ("start", po::value<double>(&start_pe)->default_value(0.4), "start erasure probability")
-            ("stop", po::value<double>(&stop_pe)->default_value(0.5), "stop erasure probability")
-            ("num", po::value<unsigned int>(&num_pe)->default_value(1), "number of erasure probabilities to test")
+            ("i", po::value<unsigned int>(&decode_iters)->default_value(10), "number decoding iterations")
+            ("b", po::value<unsigned int>(&block_errors)->default_value(100), "number block errors")
+            ("start", po::value<double>(&pe_start)->default_value(0.1), "start erasure probability")
+            ("stop", po::value<double>(&pe_stop)->default_value(1.0), "stop erasure probability")
+            ("num", po::value<unsigned int>(&pe_num)->default_value(10), "number of erasure probabilities to test")
         ;
         po::variables_map vm;
         po::positional_options_description p;
@@ -353,51 +359,49 @@ int main(int argc, char** argv) {
 
     } catch(exception &e) {
         cerr << "error: " << e.what() << endl;
-        return false;
+        return -1;
     }
 
     Graph g;
     string line;
     int v_idx=0, c_idx=0;
-    ifstream myfile (parity_check_file);
-    while (getline(myfile, line))
-    {
-        istringstream iss(line);
-        while (iss >> v_idx) {
-            g.connect(c_idx, v_idx-1);
-        } 
-        c_idx++;
-    }
-    //g.print_checks();
-    //g.print_variables();
-
-    float start_p_erase = 0.25;
-    //float start_p_erase = 0.35;
-    float stop_p_erase = 0.50;
-    float step_p_erase = (stop_p_erase - start_p_erase) / 50.;
-
-    //cout << "epsilon ";
-    for(float p_erase = start_p_erase; p_erase < stop_p_erase; p_erase+=step_p_erase) {
-            cout << " " << p_erase;
-    }
-    cout << endl;
-
-    //int iter_list[] = {1,3,5,10,15,20,25,30};
-    //int iter_list[] = {10};
-    //for(unsigned int i = 0; i < sizeof(iter_list); i++) {
-    for(unsigned int i = 0; i < 1; i++) {
-        unsigned int iters = 20;
-        //cout << iters;
-        for(float p_erase = start_p_erase; p_erase < stop_p_erase; p_erase+=step_p_erase) {
-            unsigned int block_errors = 100;
-            cerr << "testing p_erase " << p_erase << endl;
-            cout << " " << g.test_ber(p_erase, iters, block_errors);
+    ifstream myfile (parity_check_file.c_str());
+    if( myfile.is_open() ) {
+        while (getline(myfile, line))
+        {
+            istringstream iss(line);
+            while (iss >> v_idx) {
+                g.connect(c_idx, v_idx-1);
+            } 
+            c_idx++;
         }
-        cout << endl;
+    } else {
+        cerr << "error: unable to open " << parity_check_file << endl;
+        return -1;
     }
 
+
+
+    double pe_step = (pe_stop - pe_start) / (pe_num-1);
+    vector<double> pe_values;
+    vector<double> ber_values;
+
+    pe_values.push_back(pe_start);
+    for(unsigned i = 1; i < pe_num; ++i) {
+       pe_values.push_back(pe_start + i*pe_step);
+    }
+
+
+    for(vector<double>::iterator it = pe_values.begin(); it != pe_values.end(); ++it) {
+        double pe = *it;
+        unsigned int index = it - pe_values.begin() + 1;
+        //cerr << "[" << index << "/" << pe_values.size() << "] p=" << pe << "... " ;
+        cerr << format("[%2d/%2d] p=%1.4f...") % index % pe_values.size() % pe;
+        double ber = g.test_ber(pe, decode_iters, block_errors);
+        cerr << format("%.3e") % ber << endl;
+    }
+
+    return 0;
 }
 
 
-        //cout << "check " << c << " variables:" << endl;
-        //copy(int_vars.begin(), int_vars.end(), ostream_iterator<int>(cout, " "));
