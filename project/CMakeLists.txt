@@ -8,3 +8,6 @@ target_link_libraries( spa ${Boost_LIBRARIES} )
 
 add_executable( window window.cc )
 target_link_libraries( window ${Boost_LIBRARIES} )
+
+add_executable( window2 window2.cc )
+target_link_libraries( window2 ${Boost_LIBRARIES} )

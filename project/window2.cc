@@ -231,7 +231,7 @@ public:
         cout << endl;
     }
 
-    int decode(int termination_size, int constraint_length, double p_e, int iterations) {
+    int decode(int termination_size, int window_size, int constraint_length, double p_e, int iterations) {
         // TODO: stop when no erasures remain
 
         // run check step
@@ -242,111 +242,97 @@ public:
 
         unsigned int wsize = this->chks.size() / constraint_length;
 
-        list_chk active_checks;
-        for(vec_chk_it it = this->chks.begin(); it != this->chks.end(); ++it) {
-            active_checks.push_back(*it);
-        }
-
         //cout << constraint_length << endl;
-        for(int i = 0; i < termination_size+wsize; ++i) {
+        if(termination_size == 0) {
+            termination_size = 1;
+        }
+        for(int i = 0; i < termination_size-window_size+1; ++i) {
             list_var active_variables;
+            list_chk active_checks;
+            list_chk next_checks;
+            list_var next_variables;
 
-            // TODO create shift in vector
-            //      apply channel to shift in vector and shift in
-            for(int k = vars.size()-1; k >= 0; --k) {
-                Variable *v = vars[k];
-                if(k < constraint_length) {
-                    v->value = ZERO;
-                    v->apply_channel(p_e);
-                } else {
-                    v->value = vars[k-constraint_length]->value;
-                }
-                if(v->value == ERASE) {
-                    active_variables.push_back(v);
+            int win_start_var = i * constraint_length;
+            int win_end_var = win_start_var + window_size*constraint_length;
+            //for(vec_var_it it = this->vars.begin()+win_start_var; it != this->vars.begin()+win_end_var; ++it) {
+            for(int j = win_start_var; j < win_end_var; ++j) {
+                if(vars[j]->value == ERASE) {
+                    active_variables.push_back(vars[j]);
                 }
             }
-            cout << active_variables.size() << endl;
+            //cout << win_start_var << " " << win_end_var << endl;
 
-            if(i >= wsize) {
-                for(vec_chk_it it = this->chks.begin(); it != this->chks.end(); ++it) {
-                    active_checks.push_back(*it);
+            for(vec_chk_it it = this->chks.begin(); it != this->chks.end(); ++it) {
+                active_checks.push_back(*it);
+            }
+
+            for(int j = 0; j < iterations; ++j) {
+                if(active_variables.size() == 0 && active_checks.size() == 0) {
+                    break;
                 }
+                next_checks.clear();
+                next_variables.clear();
 
-                for(int j = 0; j < iterations; ++j) {
-                    if(active_variables.size() == 0 && active_checks.size() == 0) {
-                        break;
+                for(list_chk_it it = active_checks.begin(); it != active_checks.end(); ++it) {
+                    Check *c = *it;
+                    bool sent_erasure = c->send_messages();
+                    if(sent_erasure) {
+                        next_checks.push_back(c);
                     }
-
-                    /*for(vec_chk_it it = this->chks.begin(); it != this->chks.end(); ++it) {
-                        Check *c = *it;
-                        c->send_messages();
-                    }*/
-                    list_chk next_checks;
-                    for(list_chk_it it = active_checks.begin(); it != active_checks.end(); ++it) {
-                        Check *c = *it;
-                        bool sent_erasure = c->send_messages();
-                        if(sent_erasure) {
-                            next_checks.push_back(c);
-                        }
-                    }
-                    active_checks = next_checks;
-
-                    /*for(vec_var_it it = this->vars.begin(); it != this->vars.end(); ++it) {
-                        Variable *v = *it;
-                        v->update_value();
-                    }*/
-                    list_var next_variables;
-                    for(list_var_it it = active_variables.begin(); it != active_variables.end(); ++it) {
-                        Variable *v = *it;
-                        v->update_value();
-                        if(v->value == ERASE) {
-                            next_variables.push_back(v);
-                        }
-                    }
-                    active_variables = next_variables;
-                    //this->print_variables();
                 }
+                active_checks = next_checks;
+
+                /*for(vec_var_it it = this->vars.begin(); it != this->vars.end(); ++it) {
+                    Variable *v = *it;
+                    v->update_value();
+                }*/
+                for(list_var_it it = active_variables.begin(); it != active_variables.end(); ++it) {
+                    Variable *v = *it;
+                    v->update_value();
+                    if(v->value == ERASE) {
+                        next_variables.push_back(v);
+                    }
+                }
+                active_variables = next_variables;
+                //this->print_variables();
+            }
            
-                // Only check errors after pipeline is full
-                // Check errors on last constraint length bits only - these are about to be shifted out.
-                for(vec_var_it it = this->vars.end()-constraint_length; it != this->vars.end(); ++it) {
-                    //cout << it-vars.begin() << endl;
-                    if((*it)->value != ZERO) {
-                        ++bit_errors;
-                    }
-                }
+        }
+        // Only check errors after pipeline is full
+        // Check errors on last constraint length bits only - these are about to be shifted out.
+        for(vec_var_it it = this->vars.begin(); it != this->vars.end(); ++it) {
+            //cout << it-vars.begin() << endl;
+            if((*it)->value != ZERO) {
+                ++bit_errors;
             }
         }
         return bit_errors;
     }
 
-    double test_ber(unsigned int termination_size, unsigned int constraint_length, double p_e, unsigned int iterations, unsigned int block_error_threshold) {
+    double test_ber(unsigned int termination_size, unsigned int window_size, unsigned int constraint_length, double p_e, unsigned int iterations, unsigned int block_error_threshold) {
         unsigned int block_error_count = 0;
         unsigned int bit_error_count = 0;
         unsigned int sim_count = 0;
-        unsigned int total_bits;
         double ber;
         while(block_error_count <= block_error_threshold) {
             this->zero_variables();
-            //this->apply_channel(p_e);
-            unsigned int bit_errors = this->decode(termination_size, constraint_length, p_e, iterations);
+            this->apply_channel(p_e);
+            unsigned int bit_errors = this->decode(termination_size, window_size, constraint_length, p_e, iterations);
             if(bit_errors) {
                 block_error_count++;
                 bit_error_count += bit_errors;
             }
             sim_count++;
             //cout << sim_count << ">" << (1E7 / this->vars.size()) << endl;
-            total_bits = sim_count*constraint_length*termination_size;
-            ber = (double)bit_error_count/(double)(total_bits);
-            cout << constraint_length*termination_size << " " << total_bits << " " << ber << endl;
-            if(total_bits>1E6){
+            ber = (double)bit_error_count/(double)(this->vars.size()*sim_count);
+            cout << sim_count << " " << ber << endl;
+            if(this->vars.size()*sim_count>1E6){
                 break;  // if we can't get any errors we should abort
             }
         }
         //double ber = (double)bit_error_count/(double)(sim_count*this->vars.size());
         //cout << sim_count << endl;
         //cout << total_bits << endl;
-        ber = (double)bit_error_count/(double)(sim_count*constraint_length*termination_size);
         return ber;
     }
 };
@@ -362,7 +348,7 @@ int main(int argc, char** argv) {
     string parity_check_file;
     unsigned int window_size;
     unsigned int decode_iters;
-    unsigned int decode_terms;
+    unsigned int term_size;
     unsigned int block_errors;
     double pe_start, pe_stop;
     unsigned int pe_num;
@@ -375,7 +361,7 @@ int main(int argc, char** argv) {
             ("parity-file", po::value<std::string>(&parity_check_file)->required(), "parity check matrix file")
             ("wsize", po::value<unsigned int>(&window_size)->default_value(1), "window size of decoder")
             ("iter", po::value<unsigned int>(&decode_iters)->default_value(100), "number decoding iterations")
-            ("term", po::value<unsigned int>(&decode_terms)->default_value(100), "number decoding iterations")
+            ("term", po::value<unsigned int>(&term_size)->default_value(100), "termination length of data")
             ("blocks", po::value<unsigned int>(&block_errors)->default_value(100), "number block errors")
             ("start", po::value<double>(&pe_start)->default_value(0.4), "start erasure probability")
             ("stop", po::value<double>(&pe_stop)->default_value(1.0), "stop erasure probability")
@@ -422,7 +408,7 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    if(window_size == 0) {
+    if(term_size == 0) {
         for(vector<vec_int*>::iterator c_it = checks.begin(); c_it != checks.end(); ++c_it) {
             vec_int *check = *c_it;
             int c_idx = (c_it) - checks.begin();
@@ -434,7 +420,7 @@ int main(int argc, char** argv) {
     } else {
         unsigned int var_check_ratio = max_v_idx / checks.size();
         int c_idx = 0;
-        for(unsigned int i = 0; i < window_size; ++i) {
+        for(unsigned int i = 0; i < term_size; ++i) {
             for(vector<vec_int*>::iterator c_it = checks.begin(); c_it != checks.end(); ++c_it) {
                 int c_idx = c_it - checks.begin();
                 vec_int *check = *c_it;
@@ -469,7 +455,7 @@ int main(int argc, char** argv) {
         double pe = *it;
         unsigned int index = it - pe_values.begin() + 1;
         cerr << format("[%2d/%2d] p=%1.4f...") % index % pe_values.size() % pe;
-        double ber = g.test_ber(decode_terms, const_len, pe, decode_iters, block_errors);
+        double ber = g.test_ber(term_size, window_size, const_len, pe, decode_iters, block_errors);
         cerr << format("%.3e") % ber << endl;
     }
 
