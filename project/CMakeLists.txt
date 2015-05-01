@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 project("ECE1508 Project")
 
+set(CMAKE_BUILD_TYPE Release)
+
 find_package( Boost REQUIRED COMPONENTS program_options)
 
 add_executable( spa spa.cc )

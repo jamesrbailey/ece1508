@@ -307,7 +307,7 @@ public:
                 bit_error_count += bit_errors;
             }
             sim_count++;
-            //cout << sim_count << ">" << (1E7 / this->vars.size()) << endl;
+            cout << sim_count << ">" << (1E7 / this->vars.size()) << endl;
             if(1/((double)sim_count*(double)this->vars.size())<1E-7){
                 break;  // if we can't get any errors we should abort
             }

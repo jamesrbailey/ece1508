@@ -234,13 +234,14 @@ public:
     int decode(int termination_size, int window_size, int constraint_length, double p_e, int iterations) {
         // TODO: stop when no erasures remain
 
+        unsigned int constraint_window = this->chks.size() / (termination_size+1);
+        //cout << this->chks.size() << " " << termination_size << " " << constraint_window << endl;
+
         // run check step
 
         DEBUG("decoding..." << endl);
 
         unsigned int bit_errors = 0;
-
-        unsigned int wsize = this->chks.size() / constraint_length;
 
         //cout << constraint_length << endl;
         if(termination_size == 0) {
@@ -256,15 +257,28 @@ public:
             int win_end_var = win_start_var + window_size*constraint_length;
             //for(vec_var_it it = this->vars.begin()+win_start_var; it != this->vars.begin()+win_end_var; ++it) {
             for(int j = win_start_var; j < win_end_var; ++j) {
-                if(vars[j]->value == ERASE) {
-                    active_variables.push_back(vars[j]);
+                Variable *v = vars[j];
+                if(v->value == ERASE) {
+                    active_variables.push_back(v);
+                    for(map_chk_val::iterator it = v->chks.begin(); it != v->chks.end(); ++it) {
+                        active_checks.push_back(it->first);  // this will add duplicates
+                    }
                 }
             }
+            //sort( active_checks.begin(), active_checks.end() );
+            //active_checks.erase( unique( active_checks.begin(), active_checks.end() ), active_checks.end() );
             //cout << win_start_var << " " << win_end_var << endl;
 
-            for(vec_chk_it it = this->chks.begin(); it != this->chks.end(); ++it) {
-                active_checks.push_back(*it);
-            }
+            //int win_start_chk = i * constraint_window;
+            //int win_end_chk = win_start_chk + window_size*2*constraint_window;
+            //cout << win_start_chk << " " << win_end_chk << endl;
+            //for(int j = win_start_chk; j < win_end_chk; ++j) {
+            //    active_checks.push_back(this->chks[j]);
+            //}
+
+            //for(vec_chk_it it = this->chks.begin(); it != this->chks.end(); ++it) {
+            //    active_checks.push_back(*it);
+            //}
 
             for(int j = 0; j < iterations; ++j) {
                 if(active_variables.size() == 0 && active_checks.size() == 0) {
@@ -325,7 +339,7 @@ public:
             sim_count++;
             //cout << sim_count << ">" << (1E7 / this->vars.size()) << endl;
             ber = (double)bit_error_count/(double)(this->vars.size()*sim_count);
-            cout << sim_count << " " << ber << endl;
+            //cout << sim_count << " " << ber << endl;
             if(this->vars.size()*sim_count>1E6){
                 break;  // if we can't get any errors we should abort
             }
