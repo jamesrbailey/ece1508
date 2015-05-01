@@ -2,7 +2,7 @@
 
 import random
 
-n = 1200
+n = 2500
 chk_deg = 6
 var_deg = 3
 

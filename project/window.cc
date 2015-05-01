@@ -231,77 +231,98 @@ public:
         cout << endl;
     }
 
-    int decode(int iterations) {
+    int decode(int termination_size, int constraint_length, double p_e, int iterations) {
         // TODO: stop when no erasures remain
 
         // run check step
 
         DEBUG("decoding..." << endl);
 
-        list_chk active_checks;
-
-        for(vec_chk_it it = this->chks.begin(); it != this->chks.end(); ++it) {
-            active_checks.push_back(*it);
-        }
-
-        list_var active_variables;
-
-        for(vec_var_it it = this->vars.begin(); it != this->vars.end(); ++it) {
-            active_variables.push_back(*it);
-        }
-
-        for(int i = 0; i < iterations; ++i) {
-            if(active_variables.size() == 0 && active_checks.size() == 0) {
-                break;
-            }
-
-            /*for(vec_chk_it it = this->chks.begin(); it != this->chks.end(); ++it) {
-                Check *c = *it;
-                c->send_messages();
-            }*/
-            list_chk next_checks;
-            for(list_chk_it it = active_checks.begin(); it != active_checks.end(); ++it) {
-                Check *c = *it;
-                bool sent_erasure = c->send_messages();
-                if(sent_erasure) {
-                    next_checks.push_back(c);
-                }
-            }
-            active_checks = next_checks;
-
-            /*for(vec_var_it it = this->vars.begin(); it != this->vars.end(); ++it) {
-                Variable *v = *it;
-                v->update_value();
-            }*/
-            list_var next_variables;
-            for(list_var_it it = active_variables.begin(); it != active_variables.end(); ++it) {
-                Variable *v = *it;
-                v->update_value();
-                if(v->value == ERASE) {
-                    next_variables.push_back(v);
-                }
-            }
-            active_variables = next_variables;
-            //this->print_variables();
-        }
-        
         unsigned int bit_errors = 0;
-        for(vec_var_it it = this->vars.begin(); it != this->vars.end(); ++it) {
-            if((*it)->value != ZERO) {
-                ++bit_errors;
+
+        unsigned int wsize = this->chks.size() / constraint_length;
+
+        for(int i = 0; i < termination_size+wsize; ++i) {
+            // TODO create shift in vector
+            //      apply channel to shift in vector and shift in
+            for(int k = 0; k < vars.size(); ++k) {
+                if(k < constraint_length) {
+                    vars[k]->value = ZERO;
+                    vars[k]->apply_channel(p_e);
+                } else {
+                    vars[k]->value = vars[k-constraint_length]->value;
+                }
+            }
+
+            list_chk active_checks;
+
+            for(vec_chk_it it = this->chks.begin(); it != this->chks.end(); ++it) {
+                active_checks.push_back(*it);
+            }
+
+            list_var active_variables;
+
+            for(vec_var_it it = this->vars.begin(); it != this->vars.end(); ++it) {
+                active_variables.push_back(*it);
+            }
+
+            for(int j = 0; j < iterations; ++j) {
+                if(active_variables.size() == 0 && active_checks.size() == 0) {
+                    break;
+                }
+
+                /*for(vec_chk_it it = this->chks.begin(); it != this->chks.end(); ++it) {
+                    Check *c = *it;
+                    c->send_messages();
+                }*/
+                list_chk next_checks;
+                for(list_chk_it it = active_checks.begin(); it != active_checks.end(); ++it) {
+                    Check *c = *it;
+                    bool sent_erasure = c->send_messages();
+                    if(sent_erasure) {
+                        next_checks.push_back(c);
+                    }
+                }
+                active_checks = next_checks;
+
+                /*for(vec_var_it it = this->vars.begin(); it != this->vars.end(); ++it) {
+                    Variable *v = *it;
+                    v->update_value();
+                }*/
+                list_var next_variables;
+                for(list_var_it it = active_variables.begin(); it != active_variables.end(); ++it) {
+                    Variable *v = *it;
+                    v->update_value();
+                    if(v->value == ERASE) {
+                        next_variables.push_back(v);
+                    }
+                }
+                active_variables = next_variables;
+                //this->print_variables();
+            }
+           
+            if(i >= wsize) {
+                // Only check errors after pipeline is full
+                // Check errors on last constraint length bits only - these are about to be shifted out.
+                for(vec_var_it it = this->vars.end()-constraint_length; it != this->vars.end(); ++it) {
+                    //cout << it-vars.begin() << endl;
+                    if((*it)->value != ZERO) {
+                        ++bit_errors;
+                    }
+                }
             }
         }
         return bit_errors;
     }
 
-    double test_ber(double p_e, unsigned int iterations, unsigned int block_error_threshold) {
+    double test_ber(unsigned int termination_size, unsigned int constraint_length, double p_e, unsigned int iterations, unsigned int block_error_threshold) {
         unsigned int block_error_count = 0;
         unsigned int bit_error_count = 0;
         unsigned int sim_count = 0;
         while(block_error_count <= block_error_threshold) {
             this->zero_variables();
-            this->apply_channel(p_e);
-            unsigned int bit_errors = this->decode(iterations);
+            //this->apply_channel(p_e);
+            unsigned int bit_errors = this->decode(termination_size, constraint_length, p_e, iterations);
             if(bit_errors) {
                 block_error_count++;
                 bit_error_count += bit_errors;
@@ -312,7 +333,11 @@ public:
                 break;  // if we can't get any errors we should abort
             }
         }
-        double ber = (double)bit_error_count/(double)(sim_count*this->vars.size());
+        //double ber = (double)bit_error_count/(double)(sim_count*this->vars.size());
+        unsigned int total_bits = sim_count*constraint_length*termination_size;
+        //cout << sim_count << endl;
+        //cout << total_bits << endl;
+        double ber = (double)bit_error_count/(double)(sim_count*constraint_length*termination_size);
         return ber;
     }
 };
@@ -326,8 +351,9 @@ int main(int argc, char** argv) {
     #endif
 
     string parity_check_file;
-    unsigned int term_length;
+    unsigned int window_size;
     unsigned int decode_iters;
+    unsigned int decode_terms;
     unsigned int block_errors;
     double pe_start, pe_stop;
     unsigned int pe_num;
@@ -338,8 +364,9 @@ int main(int argc, char** argv) {
         desc.add_options()
             ("help,h", "help message")
             ("parity-file", po::value<std::string>(&parity_check_file)->required(), "parity check matrix file")
-            ("len", po::value<unsigned int>(&term_length)->default_value(1), "termination length of coupling; 0 for no coupling")
+            ("wsize", po::value<unsigned int>(&window_size)->default_value(1), "window size of decoder")
             ("iter", po::value<unsigned int>(&decode_iters)->default_value(100), "number decoding iterations")
+            ("term", po::value<unsigned int>(&decode_terms)->default_value(100), "number decoding iterations")
             ("blocks", po::value<unsigned int>(&block_errors)->default_value(100), "number block errors")
             ("start", po::value<double>(&pe_start)->default_value(0.4), "start erasure probability")
             ("stop", po::value<double>(&pe_stop)->default_value(1.0), "stop erasure probability")
@@ -386,7 +413,7 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    if(term_length == 0) {
+    if(window_size == 0) {
         for(vector<vec_int*>::iterator c_it = checks.begin(); c_it != checks.end(); ++c_it) {
             vec_int *check = *c_it;
             int c_idx = (c_it) - checks.begin();
@@ -398,7 +425,7 @@ int main(int argc, char** argv) {
     } else {
         unsigned int var_check_ratio = max_v_idx / checks.size();
         int c_idx = 0;
-        for(unsigned int i = 0; i < term_length; ++i) {
+        for(unsigned int i = 0; i < window_size; ++i) {
             for(vector<vec_int*>::iterator c_it = checks.begin(); c_it != checks.end(); ++c_it) {
                 int c_idx = c_it - checks.begin();
                 vec_int *check = *c_it;
@@ -425,11 +452,15 @@ int main(int argc, char** argv) {
        pe_values.push_back(pe_start + i*pe_step);
     }
 
+    // TODO put these on arguments
+    unsigned int const_len = max_v_idx;
+
+
     for(vector<double>::iterator it = pe_values.begin(); it != pe_values.end(); ++it) {
         double pe = *it;
         unsigned int index = it - pe_values.begin() + 1;
         cerr << format("[%2d/%2d] p=%1.4f...") % index % pe_values.size() % pe;
-        double ber = g.test_ber(pe, decode_iters, block_errors);
+        double ber = g.test_ber(decode_terms, const_len, pe, decode_iters, block_errors);
         cerr << format("%.3e") % ber << endl;
     }
 
