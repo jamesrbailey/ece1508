@@ -319,6 +319,7 @@ public:
         unsigned int block_error_count = 0;
         unsigned int bit_error_count = 0;
         unsigned int sim_count = 0;
+        unsigned int total_bits;
         while(block_error_count <= block_error_threshold) {
             this->zero_variables();
             //this->apply_channel(p_e);
@@ -329,12 +330,13 @@ public:
             }
             sim_count++;
             //cout << sim_count << ">" << (1E7 / this->vars.size()) << endl;
-            if(1/((double)sim_count*(double)this->vars.size())<1E-7){
+            total_bits = sim_count*constraint_length*termination_size;
+            cout << total_bits << endl;
+            if(total_bits>1E6){
                 break;  // if we can't get any errors we should abort
             }
         }
         //double ber = (double)bit_error_count/(double)(sim_count*this->vars.size());
-        unsigned int total_bits = sim_count*constraint_length*termination_size;
         //cout << sim_count << endl;
         //cout << total_bits << endl;
         double ber = (double)bit_error_count/(double)(sim_count*constraint_length*termination_size);
