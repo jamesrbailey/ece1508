@@ -69,14 +69,13 @@ Check::Check(int _index) {
 bool Check::send_messages() {
     bool sent_erasure = false;
     // loop through each connected variable node
-    for(vec_var_it i_it = this->vars.begin(); i_it != this->vars.end(); ++i_it) {
-        Variable *v_target = *i_it;
+    for(Variable *v_target : this->vars) {
+        //Variable *v_target = *i_it;
         DEBUG("c" << this->index << " sending to v" << v_target->index << " from ");
         // loop through all *other* connected variable nodes
         msg msg_target = NONE;
         int parity = 0;
-        for(vec_var_it j_it = this->vars.begin(); j_it != this->vars.end(); ++j_it) {
-            Variable *v = *j_it;
+        for(Variable *v : this->vars) {
             if(v_target == v) {
                 continue;
             }
@@ -255,7 +254,6 @@ public:
 
             int win_start_var = i * constraint_length;
             int win_end_var = win_start_var + window_size*constraint_length;
-            //for(vec_var_it it = this->vars.begin()+win_start_var; it != this->vars.begin()+win_end_var; ++it) {
             for(int j = win_start_var; j < win_end_var; ++j) {
                 Variable *v = vars[j];
                 if(v->value == ERASE) {
@@ -265,25 +263,8 @@ public:
                     }
                 }
             }
-            //sort( active_checks.begin(), active_checks.end() );
-            //active_checks.erase( unique( active_checks.begin(), active_checks.end() ), active_checks.end() );
-            //cout << win_start_var << " " << win_end_var << endl;
-
-            //int win_start_chk = i * constraint_window;
-            //int win_end_chk = win_start_chk + window_size*2*constraint_window;
-            //cout << win_start_chk << " " << win_end_chk << endl;
-            //for(int j = win_start_chk; j < win_end_chk; ++j) {
-            //    active_checks.push_back(this->chks[j]);
-            //}
-
-            //for(vec_chk_it it = this->chks.begin(); it != this->chks.end(); ++it) {
-            //    active_checks.push_back(*it);
-            //}
 
             for(int j = 0; j < iterations; ++j) {
-                if(active_variables.size() == 0 && active_checks.size() == 0) {
-                    break;
-                }
                 next_checks.clear();
                 next_variables.clear();
 
@@ -296,19 +277,20 @@ public:
                 }
                 active_checks = next_checks;
 
-                /*for(vec_var_it it = this->vars.begin(); it != this->vars.end(); ++it) {
-                    Variable *v = *it;
-                    v->update_value();
-                }*/
+                bool done = true;
                 for(list_var_it it = active_variables.begin(); it != active_variables.end(); ++it) {
                     Variable *v = *it;
                     v->update_value();
                     if(v->value == ERASE) {
                         next_variables.push_back(v);
+                        done = false;
                     }
                 }
                 active_variables = next_variables;
-                //this->print_variables();
+
+                if(!done) {
+                    break;
+                }
             }
            
         }
@@ -327,7 +309,10 @@ public:
         unsigned int block_error_count = 0;
         unsigned int bit_error_count = 0;
         unsigned int sim_count = 0;
-        double ber;
+        unsigned int max_bit_count = 1E8;
+        unsigned int update_interval = max_bit_count/10;
+        unsigned int bit_count;
+
         while(block_error_count <= block_error_threshold) {
             this->zero_variables();
             this->apply_channel(p_e);
@@ -337,16 +322,16 @@ public:
                 bit_error_count += bit_errors;
             }
             sim_count++;
-            //cout << sim_count << ">" << (1E7 / this->vars.size()) << endl;
-            ber = (double)bit_error_count/(double)(this->vars.size()*sim_count);
-            //cout << sim_count << " " << ber << endl;
-            if(this->vars.size()*sim_count>1E8){
+            bit_count = this->vars.size()*sim_count;
+            if(bit_count % update_interval == 0) {
+                cerr << (100*(double)bit_count/(double)max_bit_count) << "%..." ;
+            }
+            if(bit_count > max_bit_count){
                 break;  // if we can't get any errors we should abort
             }
         }
-        //double ber = (double)bit_error_count/(double)(sim_count*this->vars.size());
-        //cout << sim_count << endl;
-        //cout << total_bits << endl;
+
+        double ber = (double)bit_error_count/(double)(bit_count);
         return ber;
     }
 };
