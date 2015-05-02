@@ -340,7 +340,7 @@ public:
             //cout << sim_count << ">" << (1E7 / this->vars.size()) << endl;
             ber = (double)bit_error_count/(double)(this->vars.size()*sim_count);
             //cout << sim_count << " " << ber << endl;
-            if(this->vars.size()*sim_count>1E6){
+            if(this->vars.size()*sim_count>1E8){
                 break;  // if we can't get any errors we should abort
             }
         }
@@ -470,8 +470,18 @@ int main(int argc, char** argv) {
         unsigned int index = it - pe_values.begin() + 1;
         cerr << format("[%2d/%2d] p=%1.4f...") % index % pe_values.size() % pe;
         double ber = g.test_ber(term_size, window_size, const_len, pe, decode_iters, block_errors);
+        ber_values.push_back(ber);
         cerr << format("%.3e") % ber << endl;
     }
+
+    for( double pe : pe_values ) {
+        cout << pe << " " ;
+    }
+    cout << endl;
+    for( double ber : ber_values ) {
+        cout << ber << " " ;
+    }
+    cout << endl;
 
     return 0;
 }
