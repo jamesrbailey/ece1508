@@ -70,11 +70,15 @@ bool Check::send_messages() {
     bool sent_erasure = false;
     // loop through each connected variable node
     for(Variable *v_target : this->vars) {
+
         //Variable *v_target = *i_it;
         DEBUG("c" << this->index << " sending to v" << v_target->index << " from ");
+
+        if(v_target->value != ERASE) {
+            continue;
+        }
+
         // loop through all *other* connected variable nodes
-        msg msg_target = NONE;
-        int parity = 0;
         for(Variable *v : this->vars) {
             if(v_target == v) {
                 continue;
@@ -82,19 +86,14 @@ bool Check::send_messages() {
             DEBUG("v" << v->index << " ");
             msg v_value = v->value;
             if(v_value == ERASE) {
+                v_target->chks[this] = ERASE;
                 sent_erasure = true;
-                msg_target = ERASE;
                 break;
-            } else if(v_value == NONE) {
-                DEBUG("warning: v" << v->index << endl);
+            } else {
+                v_target->chks[this] = ZERO;
             }
-
-            parity += v_value; 
-            msg_target = (parity&1) ? ONE : ZERO;
         }
         DEBUG(endl);
-        //DEBUG("c" << this->index << " sending " << msg_target << " to v" << v_target->index << endl);
-        v_target->chks[this] = msg_target;
     }
     return sent_erasure;
         
@@ -121,7 +120,6 @@ msg Variable::update_value() {
     if(this->value == ERASE) {
         // read in all messages and apply variable node rules
         for(map_chk_val_it it = this->chks.begin(); it != this->chks.end(); ++it) {
-            //Check *c = it->first;
             msg c_msg = it->second;
             if(c_msg == ONE || c_msg == ZERO) {
                 // if any messages is non erased, take value and stop looking
@@ -135,12 +133,6 @@ msg Variable::update_value() {
 
     // send variable value out to connected check nodes
     msg u = this->value;
-    /*
-    for(map_chk_val_it it = this->chks.begin(); it != this->chks.end(); ++it) {
-        Check *c = it->first;
-        c->vars[this] = u;
-    }
-    */
 
     return u;
    
