@@ -77,22 +77,21 @@ bool Check::send_messages() {
         }
         DEBUG("c" << this->index << " sending to v" << v_target->index << " from ");
         // loop through all *other* connected variable nodes
-        msg msg_target = ZERO;
+        bool erased = false;
         for(Variable *v : this->vars) {
             if(v_target == v) {
                 continue;
             }
             DEBUG("v" << v->index << " ");
-            msg v_value = v->value;
-            if(v_value == ERASE) {
+            if(v->value == ERASE) {
                 sent_erasure = true;
-                msg_target = ERASE;
+                erased = true;
                 break;
             } 
             
         }
         DEBUG(endl);
-        if(msg_target != ERASE) {
+        if(!erased) {
             v_target->mailbox.push_back(ZERO);
         }
     }
