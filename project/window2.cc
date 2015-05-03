@@ -75,11 +75,9 @@ bool Check::send_messages() {
         if(v_target->value != ERASE) {
             continue;
         }
-        //Variable *v_target = *i_it;
         DEBUG("c" << this->index << " sending to v" << v_target->index << " from ");
         // loop through all *other* connected variable nodes
-        msg msg_target = NONE;
-        int parity = 0;
+        msg msg_target = ZERO;
         for(Variable *v : this->vars) {
             if(v_target == v) {
                 continue;
@@ -90,17 +88,13 @@ bool Check::send_messages() {
                 sent_erasure = true;
                 msg_target = ERASE;
                 break;
-            } else if(v_value == NONE) {
-                DEBUG("warning: v" << v->index << endl);
-            }
-
-            parity += v_value; 
-            msg_target = (parity&1) ? ONE : ZERO;
+            } 
+            
         }
         DEBUG(endl);
-        //DEBUG("c" << this->index << " sending " << msg_target << " to v" << v_target->index << endl);
-        v_target->chks[this] = msg_target;
-        v_target->mailbox.push_back(msg_target);
+        if(msg_target != ERASE) {
+            v_target->mailbox.push_back(ZERO);
+        }
     }
     return sent_erasure;
         
