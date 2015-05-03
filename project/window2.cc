@@ -56,7 +56,7 @@ public:
     msg value;
     Variable(int _index);
     int apply_channel(double p_e);
-    map_chk_val chks;
+    vector<msg> inbox;
     msg update_value();
 
 };
@@ -78,6 +78,8 @@ bool Check::send_messages() {
             continue;
         }
 
+        bool erased = false;
+
         // loop through all *other* connected variable nodes
         for(Variable *v : this->vars) {
             if(v_target == v) {
@@ -86,13 +88,15 @@ bool Check::send_messages() {
             DEBUG("v" << v->index << " ");
             msg v_value = v->value;
             if(v_value == ERASE) {
-                v_target->chks[this] = ERASE;
+                erased = true;
                 sent_erasure = true;
                 break;
-            } else {
-                v_target->chks[this] = ZERO;
             }
         }
+        if(!erased) {
+            v_target->inbox.push_back(ZERO);
+        }
+
         DEBUG(endl);
     }
     return sent_erasure;
@@ -119,22 +123,17 @@ msg Variable::update_value() {
     // determine current value of variable
     if(this->value == ERASE) {
         // read in all messages and apply variable node rules
-        for(map_chk_val_it it = this->chks.begin(); it != this->chks.end(); ++it) {
-            msg c_msg = it->second;
-            if(c_msg == ONE || c_msg == ZERO) {
+        for(msg c_msg : this->inbox) {
+            if(c_msg == ZERO) {
                 // if any messages is non erased, take value and stop looking
-                this->value = c_msg;
+                this->value = ZERO;
                 break;
             }
         }
-    } else if (this->value != ONE && this->value != ZERO) {
-        DEBUG("warning v" << this->index << " is undefined" << endl);
     }
+    this->inbox.clear();
 
-    // send variable value out to connected check nodes
-    msg u = this->value;
-
-    return u;
+    return this->value;
    
 }
 
@@ -184,8 +183,8 @@ public:
         for(unsigned int i = 0; i < vars.size(); i++) {
             Variable* v = vars[i];
             cout << "v" << i << "=" << v->value << " : ";
-            for(map_chk_val_it it = v->chks.begin(); it != v->chks.end(); ++it) {
-                cout << " " << it->first->index;
+            for(msg c_msg : v->inbox) {
+                cout << " " << c_msg ;
             }
             cout << endl;
         }
@@ -196,7 +195,7 @@ public:
         Check *c = this->get_check(c_idx);
         Variable *v = this->get_variable(v_idx);
         c->vars.push_back(v);
-        v->chks[c] = NONE;
+        //v->chks[c] = NONE;
         return 0;
     }
 
@@ -250,18 +249,18 @@ public:
                 Variable *v = vars[j];
                 if(v->value == ERASE) {
                     active_variables.push_back(v);
-                    for(map_chk_val::iterator it = v->chks.begin(); it != v->chks.end(); ++it) {
-                        active_checks.push_back(it->first);  // this will add duplicates
-                    }
                 }
+            }
+
+            for(Check *c : this->chks) {
+                active_checks.push_back(c);  // this will add more than required
             }
 
             for(int j = 0; j < iterations; ++j) {
                 next_checks.clear();
                 next_variables.clear();
 
-                for(list_chk_it it = active_checks.begin(); it != active_checks.end(); ++it) {
-                    Check *c = *it;
+                for(Check *c : active_checks) {
                     bool sent_erasure = c->send_messages();
                     if(sent_erasure) {
                         next_checks.push_back(c);
@@ -270,8 +269,7 @@ public:
                 active_checks = next_checks;
 
                 bool done = true;
-                for(list_var_it it = active_variables.begin(); it != active_variables.end(); ++it) {
-                    Variable *v = *it;
+                for(Variable *v : active_variables) {
                     v->update_value();
                     if(v->value == ERASE) {
                         next_variables.push_back(v);
@@ -288,9 +286,9 @@ public:
         }
         // Only check errors after pipeline is full
         // Check errors on last constraint length bits only - these are about to be shifted out.
-        for(vec_var_it it = this->vars.begin(); it != this->vars.end(); ++it) {
+        for(Variable *v : this->vars) {
             //cout << it-vars.begin() << endl;
-            if((*it)->value != ZERO) {
+            if(v->value != ZERO) {
                 ++bit_errors;
             }
         }
