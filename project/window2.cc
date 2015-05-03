@@ -1,3 +1,4 @@
+
 #include <boost/program_options.hpp>
 #include <boost/format.hpp>
 #include <iostream>
@@ -56,7 +57,8 @@ public:
     msg value;
     Variable(int _index);
     int apply_channel(double p_e);
-    vector<msg> inbox;
+    map_chk_val chks;
+    vector<msg> mailbox;
     msg update_value();
 
 };
@@ -70,17 +72,14 @@ bool Check::send_messages() {
     bool sent_erasure = false;
     // loop through each connected variable node
     for(Variable *v_target : this->vars) {
-
-        //Variable *v_target = *i_it;
-        DEBUG("c" << this->index << " sending to v" << v_target->index << " from ");
-
         if(v_target->value != ERASE) {
             continue;
         }
-
-        bool erased = false;
-
+        //Variable *v_target = *i_it;
+        DEBUG("c" << this->index << " sending to v" << v_target->index << " from ");
         // loop through all *other* connected variable nodes
+        msg msg_target = NONE;
+        int parity = 0;
         for(Variable *v : this->vars) {
             if(v_target == v) {
                 continue;
@@ -88,16 +87,20 @@ bool Check::send_messages() {
             DEBUG("v" << v->index << " ");
             msg v_value = v->value;
             if(v_value == ERASE) {
-                erased = true;
                 sent_erasure = true;
+                msg_target = ERASE;
                 break;
+            } else if(v_value == NONE) {
+                DEBUG("warning: v" << v->index << endl);
             }
-        }
-        if(!erased) {
-            v_target->inbox.push_back(ZERO);
-        }
 
+            parity += v_value; 
+            msg_target = (parity&1) ? ONE : ZERO;
+        }
         DEBUG(endl);
+        //DEBUG("c" << this->index << " sending " << msg_target << " to v" << v_target->index << endl);
+        v_target->chks[this] = msg_target;
+        v_target->mailbox.push_back(msg_target);
     }
     return sent_erasure;
         
@@ -123,17 +126,24 @@ msg Variable::update_value() {
     // determine current value of variable
     if(this->value == ERASE) {
         // read in all messages and apply variable node rules
-        for(msg c_msg : this->inbox) {
-            if(c_msg == ZERO) {
+        for(msg c_msg : this->mailbox) {
+        //for(map_chk_val_it it = this->chks.begin(); it != this->chks.end(); ++it) {
+        //    msg c_msg = it->second;
+            if(c_msg == ONE || c_msg == ZERO) {
                 // if any messages is non erased, take value and stop looking
-                this->value = ZERO;
+                this->value = c_msg;
                 break;
             }
         }
+    } else if (this->value != ONE && this->value != ZERO) {
+        DEBUG("warning v" << this->index << " is undefined" << endl);
     }
-    this->inbox.clear();
 
-    return this->value;
+    this->mailbox.clear();
+
+    // send variable value out to connected check nodes
+    msg u = this->value;
+    return u;
    
 }
 
@@ -183,8 +193,8 @@ public:
         for(unsigned int i = 0; i < vars.size(); i++) {
             Variable* v = vars[i];
             cout << "v" << i << "=" << v->value << " : ";
-            for(msg c_msg : v->inbox) {
-                cout << " " << c_msg ;
+            for(map_chk_val_it it = v->chks.begin(); it != v->chks.end(); ++it) {
+                cout << " " << it->first->index;
             }
             cout << endl;
         }
@@ -195,27 +205,26 @@ public:
         Check *c = this->get_check(c_idx);
         Variable *v = this->get_variable(v_idx);
         c->vars.push_back(v);
-        //v->chks[c] = NONE;
+        v->chks[c] = NONE;
         return 0;
     }
 
     void zero_variables() {
-        for(vec_var_it it = this->vars.begin(); it != this->vars.end(); ++it) {
-            (*it)->value = ZERO;
+        for(Variable *v : this->vars) {
+            v->value = ZERO;
         }
     }
 
     int apply_channel(double p_e) {
-        for(vec_var_it it = this->vars.begin(); it != this->vars.end(); ++it) {
-            (*it)->apply_channel(p_e);
-            DEBUG("v" << (*it)->index << " value: " << (*it)->value << endl);
+        for(Variable *v : this->vars) {
+            v->apply_channel(p_e);
+            DEBUG("v" << v->index << " value: " << v->value << endl);
         }
         return 0;
     }
 
     void print_var_vec() {
-        for(vec_var_it it = this->vars.begin(); it != this->vars.end(); ++it) {
-            Variable *v = *it;
+        for(Variable *v : this->vars) {
             cout << v->value;
         }
         cout << endl;
@@ -249,14 +258,16 @@ public:
                 Variable *v = vars[j];
                 if(v->value == ERASE) {
                     active_variables.push_back(v);
+                    for(map_chk_val::iterator it = v->chks.begin(); it != v->chks.end(); ++it) {
+                        active_checks.push_back(it->first);  // this will add duplicates
+                    }
                 }
             }
 
-            for(Check *c : this->chks) {
-                active_checks.push_back(c);  // this will add more than required
-            }
-
             for(int j = 0; j < iterations; ++j) {
+                if(active_variables.size() == 0 && active_checks.size() == 0) {
+                    break;
+                }
                 next_checks.clear();
                 next_variables.clear();
 
@@ -268,26 +279,20 @@ public:
                 }
                 active_checks = next_checks;
 
-                bool done = true;
                 for(Variable *v : active_variables) {
                     v->update_value();
                     if(v->value == ERASE) {
                         next_variables.push_back(v);
-                        done = false;
                     }
                 }
                 active_variables = next_variables;
-
-                if(!done) {
-                    break;
-                }
+                //this->print_variables();
             }
            
         }
         // Only check errors after pipeline is full
         // Check errors on last constraint length bits only - these are about to be shifted out.
         for(Variable *v : this->vars) {
-            //cout << it-vars.begin() << endl;
             if(v->value != ZERO) {
                 ++bit_errors;
             }
@@ -314,7 +319,7 @@ public:
             sim_count++;
             bit_count = this->vars.size()*sim_count;
             if(bit_count % update_interval == 0) {
-                cerr << (100*(double)bit_count/(double)max_bit_count) << "%..." ;
+                    cerr << (100*(double)bit_count/(double)max_bit_count) << "%..." ;
             }
             if(bit_count > max_bit_count){
                 break;  // if we can't get any errors we should abort
