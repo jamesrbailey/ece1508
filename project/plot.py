@@ -40,8 +40,10 @@ def plot_show(name, x_label, legend=None):
     plt.show()
 
 
-plot_file("results/m1024/base.data", label=r'Base Code')
+plot_file("results/m1024/base.data", label=r'(3,6)-regular base code')
 plot_file("results/m1024/pd_l64.data", label=r'Pipelined BP')
+plot_file("results/m1024/wd_w1_l64.data", label=r'WD w=1')
+plot_file("results/m1024/wd_w4_l64.data", label=r'WD w=4')
 plt.ylim([1E-5,1E0])
-plot_show(name="SC-LDPC Decoder Performance over BEC", x_label="Erasure Probability", legend="Decoder")
+plot_show(name="Unwrapped SC-LDPC", x_label="Erasure Probability", legend="Decoder")
 
