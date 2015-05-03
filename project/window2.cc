@@ -239,11 +239,15 @@ public:
         if(termination_size == 0) {
             termination_size = 1;
         }
+
+        list_var active_variables;
+        list_chk active_checks;
         for(int i = 0; i < termination_size-window_size+1; ++i) {
-            list_var active_variables;
-            list_chk active_checks;
             list_chk next_checks;
             list_var next_variables;
+
+            active_variables.clear();
+            active_checks.clear();
 
             int win_start_var = i * constraint_length;
             int win_end_var = win_start_var + window_size*constraint_length;
@@ -273,8 +277,8 @@ public:
                 active_checks = next_checks;
 
                 for(Variable *v : active_variables) {
-                    v->update_value();
-                    if(v->value == ERASE) {
+                    
+                    if(v->update_value() == ERASE) {
                         next_variables.push_back(v);
                     }
                 }
@@ -285,9 +289,11 @@ public:
         }
         // Only check errors after pipeline is full
         // Check errors on last constraint length bits only - these are about to be shifted out.
-        for(Variable *v : this->vars) {
-            if(v->value != ZERO) {
-                ++bit_errors;
+        if(active_variables.size() > 0) {
+            for(Variable *v : this->vars) {
+                if(v->value != ZERO) {
+                    ++bit_errors;
+                }
             }
         }
         return bit_errors;
@@ -297,10 +303,11 @@ public:
         unsigned int block_error_count = 0;
         unsigned int bit_error_count = 0;
         unsigned int sim_count = 0;
-        unsigned int max_bit_count = 1E8;
-        unsigned int update_interval = max_bit_count/10;
-        unsigned int bit_count;
+        unsigned long long max_bit_count = 1E10;
+        unsigned long long update_interval = block_error_threshold / 20;
+        unsigned long long bit_count ;
 
+        //cerr << update_interval;
         while(block_error_count <= block_error_threshold) {
             this->zero_variables();
             this->apply_channel(p_e);
@@ -308,12 +315,16 @@ public:
             if(bit_errors) {
                 block_error_count++;
                 bit_error_count += bit_errors;
+
+                if(block_error_count % update_interval == 0) {
+                    double percent = 100. * ((double)block_error_count / (double)block_error_threshold) ;
+                    cerr << percent << "%," ;
+                }
             }
+
             sim_count++;
+
             bit_count = this->vars.size()*sim_count;
-            if(bit_count % update_interval == 0) {
-                    cerr << (100*(double)bit_count/(double)max_bit_count) << "%..." ;
-            }
             if(bit_count > max_bit_count){
                 break;  // if we can't get any errors we should abort
             }
