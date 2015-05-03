@@ -1,4 +1,4 @@
-
+#include <signal.h>
 #include <boost/program_options.hpp>
 #include <boost/format.hpp>
 #include <iostream>
@@ -18,10 +18,18 @@
 #define DEBUG(x)
 #endif
 
+
 // TODO: don't use namespace std.  In retrospect I think this is bad practice.
 using namespace std;
 using boost::format;
 namespace po = boost::program_options;
+
+bool quit = false;
+
+void sigint_handler(int s) {
+    cerr << endl;
+    quit = true;
+}
 
 enum msg {NONE=0x4, ERASE=0x2, ONE=0x1, ZERO=0x0};
 
@@ -303,7 +311,7 @@ public:
         unsigned int block_error_count = 0;
         unsigned int bit_error_count = 0;
         unsigned int sim_count = 0;
-        unsigned long long max_bit_count = 1E9;
+        unsigned long long max_bit_count = 1E8;
         unsigned long long update_interval = block_error_threshold / 20;
         unsigned long long bit_count ;
 
@@ -312,6 +320,9 @@ public:
             this->zero_variables();
             this->apply_channel(p_e);
             unsigned int bit_errors = this->decode(termination_size, window_size, constraint_length, p_e, iterations);
+            if(quit) {
+                return -1;
+            }
             if(bit_errors) {
                 block_error_count++;
                 bit_error_count += bit_errors;
@@ -436,6 +447,8 @@ int main(int argc, char** argv) {
     //g.print_checks();
     //return 0;
 
+    signal (SIGINT,sigint_handler);
+
     double pe_step = (pe_stop - pe_start) / (pe_num-1);
     vector<double> pe_values;
     vector<double> ber_values;
@@ -454,6 +467,9 @@ int main(int argc, char** argv) {
         unsigned int index = it - pe_values.begin() + 1;
         cerr << format("[%2d/%2d] p=%1.4f...") % index % pe_values.size() % pe;
         double ber = g.test_ber(term_size, window_size, const_len, pe, decode_iters, block_errors);
+        if(quit) {
+            break;
+        }
         ber_values.push_back(ber);
         cerr << format("%.3e") % ber << endl;
     }
