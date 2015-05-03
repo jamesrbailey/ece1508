@@ -303,7 +303,7 @@ public:
         unsigned int block_error_count = 0;
         unsigned int bit_error_count = 0;
         unsigned int sim_count = 0;
-        unsigned long long max_bit_count = 1E10;
+        unsigned long long max_bit_count = 1E9;
         unsigned long long update_interval = block_error_threshold / 20;
         unsigned long long bit_count ;
 
