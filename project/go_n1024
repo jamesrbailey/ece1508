@@ -1,0 +1,4 @@
+./window ../n1024_3-6_regular.txt --wsize 1 --iter  30 --term 64 --blocks 100 --start 0.5 --stop 0.4 --num 21
+./window ../n1024_3-6_regular.txt --wsize 2 --iter  60 --term 64 --blocks 100 --start 0.5 --stop 0.4 --num 21
+./window ../n1024_3-6_regular.txt --wsize 4 --iter 120 --term 64 --blocks 100 --start 0.5 --stop 0.4 --num 21
+./window ../n1024_3-6_regular.txt --wsize 8 --iter 240 --term 64 --blocks 100 --start 0.5 --stop 0.4 --num 21
