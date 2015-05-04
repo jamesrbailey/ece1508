@@ -269,8 +269,15 @@ public:
                 }
             }
 
+            unsigned int last_chk_size=0,cur_chk_size=-1;
+            unsigned int last_var_size=0,cur_var_size=-1;
             for(int j = 0; j < iterations; ++j) {
-                if(active_variables.size() == 0 && active_checks.size() == 0) {
+                last_chk_size = cur_chk_size;
+                last_var_size = cur_var_size;
+                cur_chk_size = active_checks.size();
+                cur_var_size = active_variables.size();
+
+                if( (cur_chk_size == 0 && cur_var_size == 0) || (cur_chk_size == last_chk_size && cur_var_size == last_var_size) ) {
                     break;
                 }
                 next_checks.clear();
@@ -291,7 +298,7 @@ public:
                     }
                 }
                 active_variables = next_variables;
-                //this->print_variables();
+
             }
            
         }
