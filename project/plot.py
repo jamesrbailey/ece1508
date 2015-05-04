@@ -53,6 +53,7 @@ plot_file("results/m1024/wd_w8_l64.data", label=r'$w=8$')
 plt.ylim([1E-5,1E0])
 plot_show(name="Window Decoder Performance of SC-LDPC", x_label="Erasure Probability", legend="Decoder")
 
+plot_file("results/m2500/bp.data", label=r'BP')
 plot_file("results/m2500/wd_w1_l64.data", label=r'$w=1$')
 plot_file("results/m2500/wd_w2_l64.data", label=r'$w=2$')
 plot_file("results/m2500/wd_w4_l64.data", label=r'$w=4$')
